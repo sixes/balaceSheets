@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { AgGridReact } from 'ag-grid-react'
 import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-alpine.css'
+import './BankSheet.css' // Import custom styles
 
 type Props = {
   name: string
@@ -14,33 +15,56 @@ type Props = {
 }
 
 export default function BankSheet({ name, data, onChange, allSheets, setAllSheets, settings, setSettings }: Props) {
-  // Example: You should extend this to match your full requirements
+  const gridRef = useRef<any>(null) // Reference to the grid
+
   const columns = useMemo(() => [
-    { headerName: '序 號', field: 'no', width: 80 },
-    { headerName: '日  期', field: 'date', width: 120 },
-    { headerName: '對方科目', field: 'subject', width: 120 },
-    { headerName: '摘   要', field: 'desc', width: 120 },
+    { headerName: '序 號', field: 'cellRef', width: 80, editable: false }, // First column for row index
+    { headerName: '日  期', field: 'date', width: 120, editable: true },
+    { headerName: '對方科目', field: 'subject', width: 120, editable: true },
+    { headerName: '摘   要', field: 'desc', width: 120, editable: true },
     { headerName: '借     方', field: 'debit', width: 120, editable: true },
     { headerName: '貸     方', field: 'credit', width: 120, editable: true },
-    { headerName: '餘    額', field: 'balance', width: 120 },
-    { headerName: '餘    額', field: 'balance2', width: 120 }
+    { headerName: '餘    額', field: 'balance', width: 120, editable: true },
+    { headerName: '發票號碼', field: 'invoice', width: 120, editable: true } // New column for invoice number
   ], [])
 
-  const rows = data.rows || []
+  const rows = Array.isArray(data.rows) && data.rows.length > 0 
+    ? data.rows.map((row, index) => ({ ...row, cellRef: index + 1 })) // Use integer for row index
+    : [
+        { cellRef: 1, date: '上年餘額', subject: '', desc: '', debit: '', credit: '', balance: '', invoice: '' }, // First row with "上年餘額"
+        ...Array(9).fill({ cellRef: '', date: '', subject: '', desc: '', debit: '', credit: '', balance: '', invoice: '' }).map((row, index) => ({
+          ...row,
+          cellRef: index + 2
+        }))
+      ]
 
-  // Example: handle cell value change
   const handleCellValueChanged = (params: any) => {
-    const newRows = [...rows]
-    newRows[params.node.rowIndex] = params.data
-    onChange({ ...data, rows: newRows })
-    // TODO: trigger cross-sheet updates here
+    const updatedRows = rows.map((row, index) =>
+      index === params.node.rowIndex ? { ...row, [params.column.colId]: params.newValue } : row
+    )
+    if (params.node.rowIndex === rows.length - 1) {
+      const newRows = Array(10).fill({ cellRef: '', date: '', subject: '', desc: '', debit: '', credit: '', balance: '', invoice: '' }).map((row, index) => ({
+        ...row,
+        cellRef: rows.length + index + 1
+      }))
+      updatedRows.push(...newRows)
+
+      // Maintain scroll position
+      setTimeout(() => {
+        gridRef.current?.api?.ensureIndexVisible(rows.length) // Ensure the newly added row is visible
+      }, 0)
+    }
+    onChange({ ...data, rows: updatedRows })
   }
 
-  // Example: fixed header rows
+  const handleGridReady = (params: any) => {
+    gridRef.current = params // Store grid reference
+    params.api.sizeColumnsToFit() // Auto-resize columns to fit the grid width
+  }
+
   return (
     <div>
       <div style={{ marginBottom: 8 }}>
-        <div>銀 行 存 款</div>
         <div>銀 行 存 款</div>
         <div>
           公司名稱: <input
@@ -63,15 +87,20 @@ export default function BankSheet({ name, data, onChange, allSheets, setAllSheet
           />
         </div>
       </div>
-      <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
+      <div className="ag-theme-alpine custom-grid" style={{ height: 400, width: '100%' }}>
         <AgGridReact
+          ref={gridRef}
           rowData={rows}
           columnDefs={columns}
           onCellValueChanged={handleCellValueChanged}
           defaultColDef={{ editable: true, resizable: true }}
+          onGridReady={handleGridReady}
+          enableRangeSelection={true} // Enable range selection for copy/paste
+          enableClipboard={true} // Enable clipboard functionality for direct copy-paste
+          processCellForClipboard={(params) => params.value} // Process cell value for copying
+          processCellFromClipboard={(params) => params.value} // Process cell value for pasting
         />
       </div>
-      {/* TODO: Add summary rows, currency conversion, and bottom notes */}
     </div>
   )
 }

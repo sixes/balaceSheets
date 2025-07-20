@@ -1,0 +1,16 @@
+.custom-grid .ag-cell {
+  border: 0.5px solid #e0e0e0; /* Thin, subtle border for cell frames */
+}
+
+.custom-grid .ag-header-cell {
+  border: 0.5px solid #e0e0e0; /* Thin, subtle border for header cells */
+  background-color: #f4f4f4; /* Light gray background for header cells */
+}
+
+.custom-grid .ag-row {
+  border-bottom: 0.5px solid #e0e0e0; /* Thin row separator */
+}
+
+.custom-grid .ag-cell-focus {
+  outline: 1px solid #0078d4; /* Highlight focused cell with a subtle blue border */
+}

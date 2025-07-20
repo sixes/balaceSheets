@@ -1,6 +1,6 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import path from 'path'
-import fs from 'fs'
+import { app, BrowserWindow, ipcMain } from 'electron';
+import * as path from 'path';
+import * as fs from 'fs';
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -11,41 +11,74 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
-  })
+  });
 
-  win.loadFile(path.join(__dirname, '../../dist/renderer/index.html'))
+  // Load Vite dev server in development, or built file in production
+  if (process.env.NODE_ENV === 'development') {
+    win.loadURL('http://localhost:5173').catch((err) => {
+      console.error('Failed to load Vite dev server:', err);
+    });
+  } else {
+    win.loadFile(path.join(__dirname, '../../dist/renderer/index.html')).catch((err) => {
+      console.error('Failed to load index.html:', err);
+    });
+  }
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(createWindow).catch((err) => {
+  console.error('Failed to initialize Electron app:', err);
+});
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
 
 // Data persistence
-const dataFile = path.join(app.getPath('userData'), 'data.json')
-const settingsFile = path.join(app.getPath('userData'), 'settings.json')
+const dataFile = path.join(app.getPath('userData'), 'data.json');
+const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 
 ipcMain.handle('save-data', async (_event, data) => {
-  fs.writeFileSync(dataFile, JSON.stringify(data))
-  return true
-})
+  try {
+    fs.writeFileSync(dataFile, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    console.error('Failed to save data:', err);
+    return false;
+  }
+});
 
 ipcMain.handle('load-data', async () => {
-  if (fs.existsSync(dataFile)) {
-    return JSON.parse(fs.readFileSync(dataFile, 'utf-8'))
+  try {
+    if (fs.existsSync(dataFile)) {
+      return JSON.parse(fs.readFileSync(dataFile, 'utf-8'));
+    }
+    return null;
+  } catch (err) {
+    console.error('Failed to load data:', err);
+    return null;
   }
-  return null
-})
+});
 
 ipcMain.handle('save-settings', async (_event, data) => {
-  fs.writeFileSync(settingsFile, JSON.stringify(data))
-  return true
-})
+  try {
+    fs.writeFileSync(settingsFile, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    console.error('Failed to save settings:', err);
+    return false;
+  }
+});
 
 ipcMain.handle('load-settings', async () => {
-  if (fs.existsSync(settingsFile)) {
-    return JSON.parse(fs.readFileSync(settingsFile, 'utf-8'))
+  try {
+    if (fs.existsSync(settingsFile)) {
+      return JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
+    }
+    return null;
+  } catch (err) {
+    console.error('Failed to load settings:', err);
+    return null;
   }
-  return null
-})
+});

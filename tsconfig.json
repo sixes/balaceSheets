@@ -1,15 +1,17 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2020",
     "lib": ["DOM", "ESNext"],
     "jsx": "react-jsx",
-    "module": "ESNext",
-    "moduleResolution": "Node",
+    "module": "commonjs", // Use CommonJS for Electron main process
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "dist/renderer"
+    "outDir": "dist",
+    "rootDir": "src"
   },
-  "include": ["src/renderer"]
+  "include": ["src/**/*"], // Include both src/main and src/renderer
+  "exclude": ["node_modules"]
 }

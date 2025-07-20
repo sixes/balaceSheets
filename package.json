@@ -1,12 +1,11 @@
 {
   "name": "banknote-app",
   "version": "1.0.0",
-  "main": "dist/main.js",
+  "main": "dist/main/electron.js",
   "description": "Standalone Excel-like accounting app",
   "scripts": {
-    "dev": "concurrently \"vite --config vite.renderer.config.ts\" \"ts-node src/main/electron.ts\"",
-    "build": "vite build --config vite.renderer.config.ts && tsc -p tsconfig.main.json",
-    "package": "electron-builder"
+    "dev": "cross-env NODE_ENV=development concurrently \"tsc --project tsconfig.main.json --watch\" \"vite --config vite.renderer.config.ts\" \"wait-on dist/main/electron.js && electron .\"",
+    "build": "cross-env NODE_ENV=production tsc --project tsconfig.main.json && vite build --config vite.renderer.config.ts"
   },
   "dependencies": {
     "ag-grid-community": "^31.0.0",
@@ -18,11 +17,15 @@
   "devDependencies": {
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.6",
+    "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^8.2.0",
-    "electron": "^29.0.0",
+    "cross-env": "^7.0.3",
+    "electron": "^29.4.6",
     "electron-builder": "^24.6.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.1.3",
-    "vite": "^4.3.9"
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.3",
+    "vite": "^4.3.9",
+    "wait-on": "^8.0.3"
   }
 }
