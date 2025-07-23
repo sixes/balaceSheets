@@ -57,7 +57,7 @@ export default function App() {
     now >= new Date(settings.timeSlot.start) &&
     now <= new Date(settings.timeSlot.end)
   )
-
+/*
   if (!authed || !allowed) {
     return <AuthDialog
       settings={settings}
@@ -65,10 +65,24 @@ export default function App() {
       setAuthed={setAuthed}
     />
   }
-
+*/
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ 
+      height: '100vh', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      overflow: 'hidden',  // This is important
+      position: 'relative'  // Add this
+    }}>
+      {/* Fixed navigation bar at the top */}
+      <div style={{ 
+        flex: '0 0 auto', 
+        padding: '8px', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        borderBottom: '1px solid #ccc'
+      }}>
         <SheetTabs
           sheets={SHEETS}
           active={activeSheet}
@@ -76,7 +90,9 @@ export default function App() {
         />
         <button onClick={() => exportAllSheets(sheetData)}>導出Excel</button>
       </div>
-      <div style={{ marginTop: 16 }}>
+
+      {/* Sheet content area - takes remaining space, with position relative for the absolute positioning of sheet components */}
+      <div style={{ flex: '1 1 auto', position: 'relative', overflow: 'hidden' }}>
         {(() => {
           const props = {
             name: activeSheet,

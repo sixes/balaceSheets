@@ -1,16 +1,262 @@
+/* Global styles to ensure no scrollbars appear on body or html */
+html, body {
+  overflow: hidden !important;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* Styling for the sticky title section */
+.custom-grid-container .sticky-title {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #f4f4f4; /* Match header background */
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0; /* Match grid borders */
+  font-size: 14px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Add spacing between header elements */
+  flex: 0 0 auto; /* Prevent shrinking or growing */
+}
+
+/* Styling for header input rows to align inputs */
+.custom-grid-container .sticky-title div {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Space between label and input */
+}
+
+/* Styling for inputs to ensure consistent appearance */
+.custom-grid-container .sticky-title input {
+  font-size: 13px;
+  padding: 2px 4px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+}
+
+/* Styling for the grid wrapper */
+.grid-wrapper {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  position: relative !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+}
+
+/* Styling for the AG Grid container */
+.ag-theme-alpine.custom-grid {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible; /* Let AG Grid handle scrolling internally */
+}
+
+/* Add these CSS rules to properly display pinned bottom rows */
+
+/* Ensure pinned bottom rows are properly sized */
+.ag-theme-alpine .ag-floating-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: auto !important; /* Allow multiple pinned rows */
+  min-height: 70px; /* Enough for 2 rows (35px each) */
+  overflow: visible;
+  z-index: 10; /* Make sure it's above the grid */
+  background-color: #f5f5f5; /* Match your UI */
+  border-top: 1px solid #ccc;
+  display: block !important;
+  min-height: 70px !important; /* Accommodate two rows */
+}
+
+.ag-theme-alpine .ag-floating-bottom .ag-row-pinned {
+  min-height: 35px; /* Match pinnedRowHeight */
+  height: 35px !important; /* Force the height */
+  background-color: #f5f5f5;
+  font-weight: bold;
+  border-top: 1px solid #ccc;
+}
+
+.ag-theme-alpine .ag-floating-bottom .ag-row {
+  display: block !important;
+  height: 35px !important; /* Must match pinnedRowHeight */
+  min-height: 35px !important;
+  max-height: 35px !important;
+  visibility: visible !important;
+  background-color: #f5f5f5;
+}
+
+.ag-theme-alpine .ag-floating-bottom .ag-cell {
+  line-height: 35px !important; /* Match the row height */
+  display: flex !important;
+  align-items: center !important;
+  overflow: visible !important;
+}
+
+/* Fix for AG Grid scroll containers */
+.ag-root-wrapper {
+  overflow: visible;
+}
+
+.ag-body-viewport {
+  overflow: auto !important; /* Force scrollbars when needed */
+}
+
+/* Ensure the floating bottom container shows up */
+.ag-body-viewport-wrapper {
+  overflow: visible !important;
+}
+
+/* Fix for grid scrolling - ensure the viewport scrolls */
+.ag-body-viewport {
+  overflow: auto !important;
+}
+
+/* Styling for grid cells */
 .custom-grid .ag-cell {
   border: 0.5px solid #e0e0e0; /* Thin, subtle border for cell frames */
+  font-size: 13px;
+  line-height: 25px; /* Match rowHeight */
+}
+
+/* Styling for header cells */
+.custom-grid .ag-header {
+  position: sticky;
+  top: 0;
+  z-index: 10; /* Above content, below sticky-title */
+  background-color: #f4f4f4; /* Light gray background */
 }
 
 .custom-grid .ag-header-cell {
-  border: 0.5px solid #e0e0e0; /* Thin, subtle border for header cells */
-  background-color: #f4f4f4; /* Light gray background for header cells */
+  border: 0.5px solid #e0e0e0; /* Thin, subtle border */
+  font-weight: 500;
+  font-size: 13px;
 }
 
+/* Styling for rows */
 .custom-grid .ag-row {
   border-bottom: 0.5px solid #e0e0e0; /* Thin row separator */
 }
 
+/* Styling for focused cells */
 .custom-grid .ag-cell-focus {
-  outline: 1px solid #0078d4; /* Highlight focused cell with a subtle blue border */
+  outline: 1px solid #0078d4; /* Highlight focused cell */
+}
+
+/* Styling for pinned bottom rows */
+.custom-grid .ag-row-pinned {
+  background-color: #e8ecef; /* Slightly darker background */
+  font-weight: 600; /* Bolder text */
+  border-top: 1px solid #e0e0e0; /* Clear separation */
+  z-index: 5; /* Above content, below headers */
+  position: sticky;
+  bottom: 0;
+}
+
+.ag-theme-alpine .ag-row-pinned {
+  height: auto !important; /* Allow multiple rows to be visible */
+  min-height: 25px; /* Match your rowHeight */
+}
+
+/* Ensure the pinned bottom container has enough height */
+.ag-theme-alpine .ag-floating-bottom {
+  height: auto !important;
+  min-height: 50px; /* Adjust based on number of pinned rows (25px * 2) */
+}
+
+/* Ensure no extra space in the grid container */
+.custom-grid-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* Ensure no scrollbars on any wrapping elements */
+.ag-layout-normal, 
+.ag-ltr {
+  overflow: visible;
+}
+
+/* Button container styles */
+.button-container {
+  flex: 0 0 auto;
+  padding: 8px;
+  background-color: #f4f4f4;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  gap: 8px;
+}
+
+/* Button styles */
+.button-container button {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.button-container button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Fix for delete button disabled state */
+.button-container button:not(:disabled) {
+  cursor: pointer;
+  background-color: #f0f0f0;
+}
+
+.button-container button:not(:disabled):hover {
+  background-color: #e0e0e0;
+}
+
+/* Add these styles to ensure the grid maintains its size */
+
+.custom-grid {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 1 auto;
+}
+
+.ag-theme-alpine .ag-root-wrapper {
+  flex: 1 1 auto;
+}
+
+/* Prevent column resize on cell edit */
+.ag-theme-alpine .ag-cell-focus {
+  box-shadow: none !important;
+  border: 1px solid #2196f3 !important;
+}
+
+.ag-theme-alpine .ag-cell-inline-editing {
+  box-shadow: none !important;
+  height: 100% !important;
+  padding: 2px 6px !important;
+}
+
+/* Force grid layout to fill space */
+.ag-root-wrapper,
+.ag-root,
+.ag-body-viewport,
+.ag-center-cols-viewport {
+  width: 100% !important;
+}
+
+/* AG Grid container size */
+.ag-root {
+  flex: 1 !important;
 }

@@ -1,84 +1,87 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
-import * as path from 'path';
-import * as fs from 'fs';
+const { app, BrowserWindow, Menu, ipcMain } = require('electron')
+const path = require('node:path')
+const fs = require('fs').promises
+
+const DATA_FILE = path.join(app.getPath('userData'), 'sheetData.json')
+const SETTINGS_FILE = path.join(app.getPath('userData'), 'settings.json')
 
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 1400,
-    height: 900,
+  const mainWindow = new BrowserWindow({
     webPreferences: {
-      preload: path.join(__dirname, '../preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-    },
-  });
+      preload: path.join(__dirname, 'preload.js')
+    }
+  })
 
-  // Load Vite dev server in development, or built file in production
-  if (process.env.NODE_ENV === 'development') {
-    win.loadURL('http://localhost:5173').catch((err) => {
-      console.error('Failed to load Vite dev server:', err);
-    });
-  } else {
-    win.loadFile(path.join(__dirname, '../../dist/renderer/index.html')).catch((err) => {
-      console.error('Failed to load index.html:', err);
-    });
-  }
+  // Disable default menu to allow AG Grid context menu
+  Menu.setApplicationMenu(null)
+
+  mainWindow.loadFile('index.html')
+  mainWindow.webContents.openDevTools() // Keep DevTools open for debugging
+
+  // Debug context-menu events
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    console.log('Main process context-menu event:', params)
+  })
 }
 
-app.whenReady().then(createWindow).catch((err) => {
-  console.error('Failed to initialize Electron app:', err);
-});
+app.whenReady().then(() => {
+  // Handle save-data
+  ipcMain.handle('save-data', async (event, data) => {
+    try {
+      console.log('Saving data to file:', data)
+      await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2))
+      return true
+    } catch (error) {
+      console.error('Error saving data:', error)
+      return false
+    }
+  })
+
+  // Handle load-data
+  ipcMain.handle('load-data', async () => {
+    try {
+      const data = await fs.readFile(DATA_FILE, 'utf8')
+      console.log('Loaded data from file:', JSON.parse(data))
+      return JSON.parse(data)
+    } catch (error) {
+      console.error('Error loading data:', error)
+      return {}
+    }
+  })
+
+  // Handle save-settings
+  ipcMain.handle('save-settings', async (event, data) => {
+    try {
+      console.log('Saving settings to file:', data)
+      await fs.writeFile(SETTINGS_FILE, JSON.stringify(data, null, 2))
+      return true
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      return false
+    }
+  })
+
+  // Handle load-settings
+  ipcMain.handle('load-settings', async () => {
+    try {
+      const data = await fs.readFile(SETTINGS_FILE, 'utf8')
+      console.log('Loaded settings from file:', JSON.parse(data))
+      return JSON.parse(data)
+    } catch (error) {
+      console.error('Error loading settings:', error)
+      return { exchangeRate: '7.79' }
+    }
+  })
+
+  createWindow()
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+})
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-// Data persistence
-const dataFile = path.join(app.getPath('userData'), 'data.json');
-const settingsFile = path.join(app.getPath('userData'), 'settings.json');
-
-ipcMain.handle('save-data', async (_event, data) => {
-  try {
-    fs.writeFileSync(dataFile, JSON.stringify(data));
-    return true;
-  } catch (err) {
-    console.error('Failed to save data:', err);
-    return false;
-  }
-});
-
-ipcMain.handle('load-data', async () => {
-  try {
-    if (fs.existsSync(dataFile)) {
-      return JSON.parse(fs.readFileSync(dataFile, 'utf-8'));
-    }
-    return null;
-  } catch (err) {
-    console.error('Failed to load data:', err);
-    return null;
-  }
-});
-
-ipcMain.handle('save-settings', async (_event, data) => {
-  try {
-    fs.writeFileSync(settingsFile, JSON.stringify(data));
-    return true;
-  } catch (err) {
-    console.error('Failed to save settings:', err);
-    return false;
-  }
-});
-
-ipcMain.handle('load-settings', async () => {
-  try {
-    if (fs.existsSync(settingsFile)) {
-      return JSON.parse(fs.readFileSync(settingsFile, 'utf-8'));
-    }
-    return null;
-  } catch (err) {
-    console.error('Failed to load settings:', err);
-    return null;
-  }
-});
+  if (process.platform !== 'darwin') app.quit()
+})
