@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useRef, useCallback, useState } from 'react'
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import './BankSheet.css'; // Reuse BankSheet CSS for consistent styling
+import './AdminFeeSheet.css';
 
 type Props = {
   name: string;
@@ -14,7 +14,7 @@ type Props = {
   setSettings: (s: any) => void;
 };
 
-export default function CapitalSheet({ name, data, onChange, settings, setSettings }: Props) {
+export default function AdminFeeSheet({ name, data, onChange, settings, setSettings }: Props) {
   const gridRef = useRef<any>(null);
   const [gridReady, setGridReady] = useState(false);
   const [selectedRowsCount, setSelectedRowsCount] = useState(0);
@@ -71,12 +71,14 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
     }
 
     const newRow = {
-      no: insertIndex + 1,
+      cellRef: insertIndex + 1,
       date: '',
       subject: '',
       desc: '',
       invoice: '',
       debit: '',
+      credit: '',
+      debitOrCredit: '',
       balance: '',
       id: `${name}-row-${Date.now()}`,
     };
@@ -85,10 +87,10 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
 
     const recalculatedRows = updatedRows.map((row, index) => ({
       ...row,
-      no: index + 1,
+      cellRef: index + 1,
       id: row.id || `${name}-row-${index + 1}`,
       balance: formatNumber(
-        sanitizeNumber(row.debit) * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00'),
+        (sanitizeNumber(row.debit) - sanitizeNumber(row.credit)) * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00'),
         false
       ),
     }));
@@ -113,10 +115,10 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
 
     const recalculatedRows = updatedRows.map((row, index) => ({
       ...row,
-      no: index + 1,
+      cellRef: index + 1,
       id: row.id || `${name}-row-${index + 1}`,
       balance: formatNumber(
-        sanitizeNumber(row.debit) * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00'),
+        (sanitizeNumber(row.debit) - sanitizeNumber(row.credit)) * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00'),
         false
       ),
     }));
@@ -183,9 +185,9 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
 
   const columns = useMemo(
     () => [
-      { headerName: '序 號', field: 'no', width: 80, editable: false },
+      { headerName: '序 號', field: 'cellRef', width: 80, editable: false },
       { headerName: '日  期', field: 'date', width: 120, editable: true },
-      { headerName: '對方科目', field: 'subject', width: 120, editable: true },
+      { headerName: '科   目', field: 'subject', width: 120, editable: true },
       { headerName: '摘   要', field: 'desc', width: 120, editable: true },
       { headerName: '發票號碼', field: 'invoice', width: 120, editable: true },
       {
@@ -194,6 +196,21 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
         width: 120,
         editable: true,
         valueFormatter: (params: any) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : ''),
+      },
+      {
+        headerName: '貸     方',
+        field: 'credit',
+        width: 120,
+        editable: true,
+        valueFormatter: (params: any) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : ''),
+      },
+      {
+        headerName: '借或贷',
+        field: 'debitOrCredit',
+        width: 100,
+        editable: true,
+        cellEditor: 'agSelectCellEditor',
+        cellEditorParams: { values: ['', '借', '贷'] },
       },
       {
         headerName: '餘    額',
@@ -210,37 +227,42 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
     const rowsArray = Array.isArray(data?.rows) ? data.rows : [];
     const calculatedRows = rowsArray.map((row, index) => ({
       ...row,
-      no: row.no || index + 1,
+      cellRef: row.cellRef || index + 1,
       id: row.id || `${name}-row-${index + 1}`,
       balance: formatNumber(
-        sanitizeNumber(row.debit) * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00'),
+        (sanitizeNumber(row.debit) - sanitizeNumber(row.credit)) * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00'),
         false
       ),
     }));
 
     const debitSum = calculatedRows.reduce((sum, row) => sum + sanitizeNumber(row.debit), 0);
+    const creditSum = calculatedRows.reduce((sum, row) => sum + sanitizeNumber(row.credit), 0);
     const balanceSum = calculatedRows.reduce((sum, row) => sum + sanitizeNumber(row.balance), 0);
 
     const exchangeRate = sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00');
 
     const pinnedBottomRow = [
       {
-        no: '',
+        cellRef: '',
         date: '',
         subject: '',
         desc: 'HKD Total',
         invoice: '',
         debit: formatNumber(debitSum, true),
+        credit: formatNumber(creditSum, true),
+        debitOrCredit: '',
         balance: formatNumber(balanceSum, true),
         id: 'summary-row-hkd',
       },
       {
-        no: '',
+        cellRef: '',
         date: '',
         subject: '',
         desc: 'HKD Total (Converted)',
         invoice: '',
         debit: formatNumber(debitSum * exchangeRate, true),
+        credit: formatNumber(creditSum * exchangeRate, true),
+        debitOrCredit: '',
         balance: formatNumber(balanceSum, true),
         id: 'summary-row-converted',
       },
@@ -252,7 +274,7 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
     return { rows: calculatedRows, pinnedBottomRow };
   }, [data?.rows, settings.exchangeRates, name, sanitizeNumber, formatNumber]);
 
-  console.log(`Rendering CapitalSheet for ${name}, data:`, data, 'rows:', rows, 'gridReady:', gridReady);
+  console.log(`Rendering AdminFeeSheet for ${name}, data:`, data, 'rows:', rows, 'gridReady:', gridReady);
 
   return (
     <div className="custom-grid-container" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -307,9 +329,11 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
             onCellValueChanged={(params) => {
               const newRows = [...rows];
               const debit = sanitizeNumber(params.data.debit);
+              const credit = sanitizeNumber(params.data.credit);
+              const balance = debit - credit;
               newRows[params.node.rowIndex] = {
                 ...params.data,
-                balance: formatNumber(debit * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00')),
+                balance: formatNumber(balance * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00')),
               };
               const newData = { ...data, rows: newRows };
               console.log(`${name} onChange:`, newData);
