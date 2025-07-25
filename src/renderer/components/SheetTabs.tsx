@@ -1,30 +1,53 @@
-import React from 'react'
+import React from 'react';
 
 type Props = {
-  sheets: { name: string }[]
-  active: string
-  onSelect: (name: string) => void
-}
+  sheets: Array<{ name: string; type: string }>;
+  active: string;
+  onSelect: (name: string) => void;
+  onDelete: (name: string) => void;
+};
 
-export default function SheetTabs({ sheets, active, onSelect }: Props) {
+export default function SheetTabs({ sheets, active, onSelect, onDelete }: Props) {
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
-      {sheets.map(sheet => (
-        <button
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+      {sheets.map((sheet) => (
+        <div
           key={sheet.name}
           style={{
-            padding: '8px 16px',
-            background: sheet.name === active ? '#1976d2' : '#eee',
-            color: sheet.name === active ? '#fff' : '#333',
-            border: 'none',
-            borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            padding: '4px 8px',
+            backgroundColor: active === sheet.name ? '#0078d4' : '#e0e0e0',
+            color: active === sheet.name ? '#fff' : '#000',
             cursor: 'pointer',
+            borderRadius: '4px',
+            fontSize: '12px',
           }}
-          onClick={() => onSelect(sheet.name)}
         >
-          {sheet.name}
-        </button>
+          <span
+            onClick={() => onSelect(sheet.name)}
+            style={{ marginRight: '8px' }}
+          >
+            {sheet.name}
+          </span>
+          {sheet.type === 'bank' && (
+            <button
+              onClick={() => onDelete(sheet.name)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: active === sheet.name ? '#fff' : '#ff4444',
+                cursor: 'pointer',
+                fontSize: '12px',
+                padding: '0 4px',
+              }}
+              title="Delete sheet"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       ))}
     </div>
-  )
+  );
 }

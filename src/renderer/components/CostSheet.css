@@ -1,4 +1,4 @@
-/* AdminFeeSheet.css */
+/* CostSheet.css */
 
 /* Global box-sizing */
 html, body, * {
@@ -6,7 +6,7 @@ html, body, * {
 }
 
 /* Styling for the sticky title section */
-.adminfee-sheet .custom-grid-container .sticky-title {
+.cost-sheet .custom-grid-container .sticky-title {
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -20,68 +20,68 @@ html, body, * {
     gap: 8px;
 }
 
-.adminfee-sheet .custom-grid-container .sticky-title div {
+.cost-sheet .custom-grid-container .sticky-title div {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.adminfee-sheet .custom-grid-container .sticky-title input {
+.cost-sheet .custom-grid-container .sticky-title input {
     font-size: 13px;
     padding: 2px 4px;
     border: 1px solid #e0e0e0;
     border-radius: 3px;
 }
 
-.adminfee-sheet .custom-grid-container .grid-wrapper {
+.cost-sheet .custom-grid-container .grid-wrapper {
     flex: 1;
     overflow: auto;
     margin: 0;
     padding: 0;
 }
 
-.adminfee-sheet .custom-grid {
+.cost-sheet .custom-grid {
     width: 100% !important;
     height: 100% !important;
     min-width: 100% !important;
     resize: horizontal;
 }
 
-.adminfee-sheet .custom-grid .ag-cell {
+.cost-sheet .custom-grid .ag-cell {
     border: 0.5px solid #e0e0e0;
     font-size: 13px;
     line-height: 30px;
 }
 
-.adminfee-sheet .custom-grid .ag-header {
+.cost-sheet .custom-grid .ag-header {
     position: sticky;
     top: 0;
     z-index: 10;
     background-color: #f4f4f4;
 }
 
-.adminfee-sheet .custom-grid .ag-header-cell {
+.cost-sheet .custom-grid .ag-header-cell {
     border: 0.5px solid #e0e0e0;
     font-weight: 500;
     font-size: 13px;
 }
 
-.adminfee-sheet .custom-grid .ag-row {
+.cost-sheet .custom-grid .ag-row {
     border-bottom: 0.5px solid #e0e0e0;
 }
 
-.adminfee-sheet .custom-grid .ag-cell-focus {
+.cost-sheet .custom-grid .ag-cell-focus {
     outline: 1px solid #0078d4;
 }
 
-.adminfee-sheet .custom-grid .ag-row-pinned {
+.cost-sheet .custom-grid .ag-row-pinned {
     background-color: #e8ecef;
     font-weight: 600;
     border-top: 1px solid #e0e0e0;
     z-index: 5;
 }
 
-.adminfee-sheet .custom-grid-container {
+.cost-sheet .custom-grid-container {
     flex: 1;
     overflow: hidden;
     margin: 0;
@@ -89,7 +89,7 @@ html, body, * {
     min-width: 100% !important;
 }
 
-.adminfee-sheet .ag-theme-alpine.custom-grid {
+.cost-sheet .ag-theme-alpine.custom-grid {
     position: absolute;
     top: 0;
     left: 0;
@@ -100,7 +100,7 @@ html, body, * {
     min-width: 100% !important;
 }
 
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom {
+.cost-sheet .ag-theme-alpine .ag-floating-bottom {
     position: sticky !important;
     bottom: 0 !important;
     z-index: 20 !important;
@@ -113,8 +113,8 @@ html, body, * {
     display: block !important;
 }
 
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-row,
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-row-pinned {
+.cost-sheet .ag-theme-alpine .ag-floating-bottom .ag-row,
+.cost-sheet .ag-theme-alpine .ag-floating-bottom .ag-row-pinned {
     height: 70px !important;
     min-height: 70px !important;
     max-height: 70px !important;
@@ -127,7 +127,7 @@ html, body, * {
     visibility: visible !important;
 }
 
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell {
+.cost-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell {
     display: flex !important;
     align-items: center !important;
     background-color: #e8e8e8 !important;
@@ -140,47 +140,46 @@ html, body, * {
     white-space: nowrap !important;
     line-height: 70px !important;
     font-size: 14px !important;
-    color: black !important;
+    color: #000 !important;
 }
 
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="debit"],
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="credit"],
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="balance"] {
+.cost-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="debit"],
+.cost-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="balance"] {
     justify-content: flex-end !important;
     text-align: right !important;
 }
 
-.adminfee-sheet .ag-center-cols-clipper {
+.cost-sheet .ag-center-cols-clipper {
     min-height: auto !important;
     max-height: none !important;
 }
 
-.adminfee-sheet .ag-body-viewport-wrapper {
+.cost-sheet .ag-body-viewport-wrapper {
     min-height: auto !important;
     max-height: none !important;
     overflow: hidden !important;
 }
 
-.adminfee-sheet .ag-body-viewport {
+.cost-sheet .ag-body-viewport {
     overflow: auto !important;
     max-height: none !important;
     width: 100% !important;
     min-width: 100% !important;
 }
 
-.adminfee-sheet .ag-floating-bottom-container {
+.cost-sheet .ag-floating-bottom-container {
     overflow: visible !important;
     height: 140px !important;
 }
 
-.adminfee-sheet .ag-root-wrapper, .adminfee-sheet .ag-layout-normal {
+.cost-sheet .ag-root-wrapper, .cost-sheet .ag-layout-normal {
     height: 100% !important;
     width: 100% !important;
     min-width: 100% !important;
 }
 
-.adminfee-sheet .ag-center-cols-viewport,
-.adminfee-sheet .ag-center-cols-container {
+.cost-sheet .ag-center-cols-viewport,
+.cost-sheet .ag-center-cols-container {
     width: 100% !important;
     min-width: 100% !important;
 }

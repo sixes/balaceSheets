@@ -4,25 +4,24 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import './BankSheet.css';
 
-type Props = {
+interface Props {
   name: string;
   data: any;
   onChange: (data: any) => void;
   allSheets: any;
   setAllSheets: (data: any) => void;
   settings: any;
-  setSettings: (s: any) => void;
-};
+  setSettings: (data: any) => void;
+}
 
-const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, settings, setSettings }: Props, ref) => {
+const BankSheet = forwardRef(({ name, onChange, data, allSheets, setAllSheets, settings, setSettings }: Props, ref) => {
   const gridRef = useRef<any>(null);
   const [gridReady, setGridReady] = useState(false);
   const [selectedRowsCount, setSelectedRowsCount] = useState(0);
   const [currentEdit, setCurrentEdit] = useState<{ rowIndex: number; colId: string; value: any } | null>(null);
 
-  const currency = name.split('-')[1] || 'USD';
+  const currency = name.split('-')[1]?.toUpperCase() || 'USD';
 
-  // Expose saveCurrentEdit to parent via ref
   useImperativeHandle(ref, () => ({
     saveCurrentEdit: () => {
       if (currentEdit && gridRef.current?.api) {
@@ -54,7 +53,6 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
     },
   }));
 
-  // Clear grid focus and editing state on mount
   useEffect(() => {
     if (gridRef.current?.api) {
       gridRef.current.api.stopEditing();
@@ -71,7 +69,7 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
   }, [name]);
 
   const formatNumber = (value: number, isPinned: boolean = false): string => {
-    if (isNaN(value)) return '';
+    if (isNaN(value) || value === null || value === undefined) return '0.00';
     const absValue = Math.abs(value);
     const formatted = absValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return isPinned && value < 0 ? `(${formatted})` : formatted;
@@ -90,39 +88,66 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
   const columns = useMemo(
     () => [
       { headerName: '序 號', field: 'cellRef', width: 80, editable: false, valueFormatter: (params) => params.value || '' },
-      { headerName: '日  期', field: 'date', width: 120, editable: true },
-      { headerName: '對方科目', field: 'subject', width: 120, editable: true },
-      { headerName: '摘   要', field: 'desc', width: 120, editable: true },
+      {
+        headerName: '日  期',
+        field: 'date',
+        flex: 1,
+        minWidth: 120,
+        editable: (params) => !params.node.rowPinned,
+      },
+      {
+        headerName: '對方科目',
+        field: 'subject',
+        flex: 1,
+        minWidth: 120,
+        editable: (params) => !params.node.rowPinned,
+      },
+      {
+        headerName: '摘   要',
+        field: 'desc',
+        flex: 1,
+        minWidth: 120,
+        editable: (params) => !params.node.rowPinned,
+      },
       {
         headerName: '借     方',
         field: 'debit',
-        width: 120,
-        editable: true,
-        valueFormatter: (params) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : ''),
+        flex: 1,
+        minWidth: 120,
+        editable: (params) => !params.node.rowPinned,
+        valueFormatter: (params) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
       },
       {
         headerName: '貸     方',
         field: 'credit',
-        width: 120,
-        editable: true,
-        valueFormatter: (params) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : ''),
+        flex: 1,
+        minWidth: 120,
+        editable: (params) => !params.node.rowPinned,
+        valueFormatter: (params) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
       },
       {
         headerName: '餘    額',
         field: 'balance',
-        width: 120,
-        editable: (params) => params.node.rowIndex === 0,
+        flex: 1,
+        minWidth: 120,
+        editable: (params) => params.node.rowIndex === 0 && !params.node.rowPinned,
         valueGetter: (params) => params.data.balance,
         valueSetter: (params) => {
-          if (params.node.rowIndex === 0) {
+          if (params.node.rowIndex === 0 && !params.node.rowPinned) {
             params.data.balance = params.newValue;
             return true;
           }
           return false;
         },
-        valueFormatter: (params) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : ''),
+        valueFormatter: (params) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
       },
-      { headerName: '發票號碼', field: 'invoice', width: 120, editable: true },
+      {
+        headerName: '發票號碼',
+        field: 'invoice',
+        flex: 1,
+        minWidth: 120,
+        editable: (params) => !params.node.rowPinned,
+      },
     ],
     []
   );
@@ -237,6 +262,7 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
 
   const { rows, pinnedBottomRow } = useMemo(() => {
     const rowsArray = Array.isArray(data?.rows) ? data.rows : [];
+    console.log(`Computing rows for ${name}, input rows:`, rowsArray);
     const inputRows =
       rowsArray.length > 0
         ? rowsArray.map((row, index) => ({ ...row, cellRef: index + 1, id: `row-${index + 1}` }))
@@ -251,7 +277,7 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
               })),
           ];
 
-    let previousBalance = sanitizeNumber(inputRows[0].balance);
+    let previousBalance = sanitizeNumber(inputRows[0].balance || '0.00');
     const calculatedRows = inputRows.map((row, index) => {
       if (index === 0) {
         return { ...row, balance: formatNumber(previousBalance) };
@@ -273,37 +299,44 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
       return true;
     });
 
-    // Calculate sums for pinned rows
-    const debitSum = uniqueRows.reduce((sum, row) => sum + sanitizeNumber(row.debit), 0);
-    const creditSum = uniqueRows.reduce((sum, row) => sum + sanitizeNumber(row.credit), 0);
+    const debitSum = uniqueRows.reduce((sum, row) => {
+      const debit = sanitizeNumber(row.debit);
+      console.log(`Row ${row.cellRef} debit: ${row.debit} -> ${debit}`);
+      return sum + debit;
+    }, 0);
+    const creditSum = uniqueRows.reduce((sum, row) => {
+      const credit = sanitizeNumber(row.credit);
+      console.log(`Row ${row.cellRef} credit: ${row.credit} -> ${credit}`);
+      return sum + credit;
+    }, 0);
     const balanceSum = debitSum - creditSum;
     const exchangeRate = sanitizeNumber(settings.exchangeRates?.[name] || '1.00');
+    console.log(`Sums for ${name}: debit=${debitSum}, credit=${creditSum}, balance=${balanceSum}, exchangeRate=${exchangeRate}`);
 
-    // Create pinnedBottomRow data
     const pinnedBottom = [
       {
-        cellRef: 'T1',
-        date: 'Total',
+        cellRef: '',
+        date: '',
         subject: '',
         desc: `${currency} Total`,
         debit: formatNumber(debitSum, true),
         credit: formatNumber(creditSum, true),
         balance: formatNumber(balanceSum, true),
-        invoice: 'SUM',
+        invoice: '',
         id: 'pinned-currency-total',
       },
       {
-        cellRef: 'T2',
-        date: 'Total',
+        cellRef: '',
+        date: '',
         subject: '',
         desc: 'HKD Total',
         debit: formatNumber(debitSum * exchangeRate, true),
         credit: formatNumber(creditSum * exchangeRate, true),
         balance: formatNumber(balanceSum * exchangeRate, true),
-        invoice: 'HKD',
+        invoice: '',
         id: 'pinned-hkd-total',
       },
-    ];
+    ].filter((row) => row.desc && row.debit !== undefined && row.credit !== undefined && row.balance !== undefined);
 
     console.log(`Sheet ${name} rows:`, uniqueRows);
     console.log(`Sheet ${name} pinned rows:`, pinnedBottom);
@@ -312,35 +345,50 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
   }, [data?.rows, name, sanitizeNumber, formatNumber, settings.exchangeRates, currency]);
 
   useEffect(() => {
-    // Debug the pinned row data
-    console.log('Pinned Bottom Row Data:', rows);
-
-    if (gridRef.current?.api) {
-      const pinnedNodes = gridRef.current.api.getPinnedBottomRow();
-      console.log('Pinned Bottom Row Nodes:', pinnedNodes);
+    if (gridRef.current?.api && data?.rows) {
+      gridRef.current.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+      gridRef.current.api.redrawRows();
+      setTimeout(() => {
+        if (gridRef.current?.api) {
+          gridRef.current.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+          gridRef.current.api.redrawRows();
+          console.log(`Delayed set and redraw pinned bottom rows for ${name}:`, pinnedBottomRow);
+        }
+      }, 100);
+      gridRef.current.api.forEachNode((node: any) => {
+        if (node.rowPinned === 'bottom') {
+          console.log(`Pinned row data for ${name}:`, node.data);
+        }
+      });
+      console.log(`Set and redrawn pinned bottom rows for ${name}:`, pinnedBottomRow);
     }
-  }, [rows, gridRef.current?.api]);
+  }, [pinnedBottomRow, data?.rows, name]);
 
   const handleCellValueChanged = useCallback(
     (params: any) => {
+      if (params.node.rowPinned) {
+        console.log(`Ignoring edit in pinned row for ${name}:`, params);
+        gridRef.current?.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+        gridRef.current?.api.redrawRows();
+        return;
+      }
+
       const api = gridRef.current?.api;
       const colState = api?.getColumnState();
       const verticalScrollPosition = api?.getVerticalPixelRange()?.top || 0;
       const horizontalScrollPosition = api?.getHorizontalPixelRange()?.left || 0;
       const editedRowIndex = params.node.rowIndex;
 
-      // Capture the in-progress edit value
       setCurrentEdit({
         rowIndex: editedRowIndex,
         colId: params.column.colId,
         value: params.newValue,
       });
 
-      // Commit the edit to sheetData
       let updatedRows = rows.map((row, index) => (index === editedRowIndex ? { ...row, [params.column.colId]: params.newValue } : row));
 
       if (params.column.colId === 'debit' || params.column.colId === 'credit' || (params.column.colId === 'balance' && editedRowIndex === 0)) {
-        let previousBalance = sanitizeNumber(updatedRows[0].balance);
+        let previousBalance = sanitizeNumber(updatedRows[0].balance || '0.00');
         updatedRows = updatedRows.map((row, index) => {
           if (index === 0) {
             return { ...row, balance: formatNumber(previousBalance) };
@@ -372,52 +420,51 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
       onChange(newData);
 
       if (api) {
-        api.stopEditing(false); // Keep editing active to allow further input
+        api.stopEditing(false);
         api.clearFocusedCell();
         if (colState) api.setColumnState(colState);
         api.setVerticalScrollPosition(verticalScrollPosition);
-        api.setHorizontalPixelRange(horizontalScrollPosition);
+        api.setHorizontalScrollPosition(horizontalScrollPosition);
         api.ensureIndexVisible(editedRowIndex, 'middle');
+        api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+        api.redrawRows();
+        setTimeout(() => {
+          if (api) {
+            api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+            api.redrawRows();
+            console.log(`Delayed redraw pinned rows after edit for ${name}:`, pinnedBottomRow);
+          }
+        }, 100);
+        api.forEachNode((node: any) => {
+          if (node.rowPinned === 'bottom') {
+            console.log(`Pinned row data after edit for ${name}:`, node.data);
+          }
+        });
       }
     },
-    [data, rows, onChange, sanitizeNumber, formatNumber]
+    [data, rows, onChange, sanitizeNumber, formatNumber, pinnedBottomRow, name]
   );
 
-  const handleGridReady = useCallback((params: any) => {
-    gridRef.current = params;
-    setGridReady(true);
-    
-    // Initial column sizing
-    setTimeout(() => {
+  const handleGridReady = useCallback(
+    (params: any) => {
+      gridRef.current = params;
+      setGridReady(true);
+      params.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
       params.api.sizeColumnsToFit();
-      
-      // Ensure all columns are visible
-      const allColumnIds = params.columnApi.getAllColumns().map(column => column.getId());
-      params.columnApi.autoSizeColumns(allColumnIds);
-      
-      // Now size to fit after ensuring all columns have proper width
-      setTimeout(() => {
-        params.api.sizeColumnsToFit();
-        params.api.doLayout();
-      }, 50);
-    }, 0);
-  }, []);
+      params.api.redrawRows();
+      console.log(`Grid ready for ${name}, columns sized, pinned rows set:`, pinnedBottomRow);
+    },
+    [name, pinnedBottomRow]
+  );
 
-  const onGridSizeChanged = useCallback((params) => {
-    // Resize columns when grid size changes
-    params.api.sizeColumnsToFit();
-  }, []);
-
-  const getPinnedRowStyle = useCallback(() => {
-    return {
-      fontWeight: 'bold',
-      backgroundColor: '#e8e8e8',
-      color: '#000',
-      borderBottom: '1px solid #aaa',
-      height: '50px',
-      fontSize: '14px',
-    };
-  }, []);
+  const getPinnedRowStyle = useCallback(() => ({
+    fontWeight: 'bold',
+    backgroundColor: '#e8e8e8',
+    color: '#000',
+    borderBottom: '1px solid #aaa',
+    height: '70px',
+    fontSize: '14px',
+  }), []);
 
   return (
     <div
@@ -433,7 +480,6 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
         overflow: 'hidden',
       }}
     >
-      {/* Header section - will not scroll */}
       <div className="sticky-title" style={{ flex: '0 0 auto' }}>
         <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>銀 行 存 款 - {name}</div>
         <div>
@@ -443,13 +489,13 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
             onChange={(e) => setSettings({ ...settings, companyName: e.target.value })}
             style={{ width: 120 }}
           />
-          會計期間：
+          會計期間：{' '}
           <input
             value={settings.period || ''}
             onChange={(e) => setSettings({ ...settings, period: e.target.value })}
             style={{ width: 120 }}
           />
-          賬號：
+          賬號：{' '}
           <input
             value={data?.account || ''}
             onChange={(e) => {
@@ -460,6 +506,7 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
           />
           {name.includes('-') && (
             <>
+              {' '}
               {name.split('-')[1]}:HKD ={' '}
               <input
                 value={settings.exchangeRates?.[name] || '1.00'}
@@ -476,7 +523,6 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
         </div>
       </div>
 
-      {/* Button row */}
       <div style={{ flex: '0 0 auto', padding: '4px 8px' }}>
         <button onClick={addRow} style={{ marginRight: '8px' }}>
           Add Row
@@ -489,12 +535,11 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
         </button>
       </div>
 
-      {/* AG Grid - fills remaining space with internal scrolling */}
       <div
         style={{
           flex: '1 1 auto',
           position: 'relative',
-          minHeight: 0, // Important for flex containers
+          minHeight: 0,
         }}
       >
         <div
@@ -510,13 +555,12 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
           <AgGridReact
             ref={gridRef}
             rowData={rows}
-            pinnedBottomRowData={pinnedBottomRow}
             columnDefs={columns}
             defaultColDef={{
-              editable: true,
+              editable: false,
               resizable: true,
-              suppressSizeToFit: false, // Let columns be sized to fit
-              minWidth: 80, // Add minimum width to prevent columns from disappearing
+              suppressSizeToFit: true,
+              minWidth: 80,
             }}
             onGridReady={handleGridReady}
             onCellValueChanged={handleCellValueChanged}
@@ -531,8 +575,8 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
             suppressMoveWhenRowDragging={true}
             suppressFocusAfterRefresh={true}
             headerHeight={30}
-            rowHeight={25}
-            pinnedRowHeight={70} // Increased from 35 to 50
+            rowHeight={30}
+            pinnedRowHeight={70}
             domLayout="normal"
             rowSelection="multiple"
             getContextMenuItems={getContextMenuItems}
@@ -563,14 +607,18 @@ const BankSheet = forwardRef(({ name, data, onChange, allSheets, setAllSheets, s
               };
             }}
             onFirstDataRendered={(params) => {
-              // Fix for pinned rows display after first render
               setTimeout(() => {
                 params.api.sizeColumnsToFit();
-                const pinnedNodes = params.api.getPinnedBottomRow();
-                console.log('After sizing - Pinned Bottom Rows:', pinnedNodes);
-              }, 100);
+                params.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+                params.api.redrawRows();
+                params.api.forEachNode((node: any) => {
+                  if (node.rowPinned === 'bottom') {
+                    console.log(`Pinned row data on first render for ${name}:`, node.data);
+                  }
+                });
+                console.log(`First data rendered for ${name}, columns sized, pinned rows:`, pinnedBottomRow);
+              }, 500);
             }}
-            onGridSizeChanged={onGridSizeChanged}
           />
         </div>
       </div>

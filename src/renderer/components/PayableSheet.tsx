@@ -1,9 +1,8 @@
-
 import React, { useMemo, useEffect, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import './BankSheet.css'; // Reuse BankSheet CSS for consistent styling
+import './PayableSheet.css';
 
 type Props = {
   name: string;
@@ -19,7 +18,7 @@ export default function PayableSheet({ name, data, onChange, settings, setSettin
   const gridRef = useRef<any>(null);
 
   const formatNumber = (value: number, isPinned: boolean = false): string => {
-    if (isNaN(value)) return '';
+    if (isNaN(value) || value === null || value === undefined) return '0.00';
     const absValue = Math.abs(value);
     const formatted = absValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return isPinned && value < 0 ? `(${formatted})` : formatted;
@@ -35,7 +34,6 @@ export default function PayableSheet({ name, data, onChange, settings, setSettin
     return parseFloat(value) || 0;
   };
 
-  // Clear grid focus on mount
   useEffect(() => {
     if (gridRef.current?.api) {
       gridRef.current.api.stopEditing();
@@ -53,25 +51,62 @@ export default function PayableSheet({ name, data, onChange, settings, setSettin
 
   const columns = useMemo(
     () => [
-      { headerName: '序 號', field: 'no', width: 80, editable: false },
-      { headerName: '日  期', field: 'date', width: 120, editable: true },
-      { headerName: '對方科目', field: 'subject', width: 120, editable: true },
-      { headerName: '摘   要', field: 'desc', width: 120, editable: true },
-      { headerName: '發票號碼', field: 'invoice', width: 120, editable: true },
+      { 
+        headerName: '序 號', 
+        field: 'no', 
+        width: 80, 
+        editable: false,
+        valueFormatter: (params) => params.value || ''
+      },
+      { 
+        headerName: '日  期', 
+        field: 'date', 
+        flex: 1, 
+        minWidth: 120, 
+        editable: true,
+        valueFormatter: (params) => params.value || ''
+      },
+      { 
+        headerName: '對方科目', 
+        field: 'subject', 
+        flex: 1, 
+        minWidth: 120, 
+        editable: true,
+        valueFormatter: (params) => params.value || ''
+      },
+      { 
+        headerName: '摘   要', 
+        field: 'desc', 
+        flex: 1, 
+        minWidth: 120, 
+        editable: true,
+        valueFormatter: (params) => params.value || ''
+      },
+      { 
+        headerName: '發票號碼', 
+        field: 'invoice', 
+        flex: 1, 
+        minWidth: 120, 
+        editable: true,
+        valueFormatter: (params) => params.value || ''
+      },
       {
         headerName: '借     方',
         field: 'debit',
-        width: 120,
+        flex: 1,
+        minWidth: 120,
         editable: true,
-        valueFormatter: (params: any) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : ''),
+        valueFormatter: (params: any) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
       },
       {
         headerName: '餘    額',
         field: 'balance',
-        width: 120,
+        flex: 1,
+        minWidth: 120,
         editable: false,
-        valueFormatter: (params: any) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : ''),
+        valueFormatter: (params: any) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
       },
+      { field: 'id', hide: true }, // Prevent "Invalid number"
     ],
     []
   );
@@ -86,7 +121,6 @@ export default function PayableSheet({ name, data, onChange, settings, setSettin
 
     const debitSum = calculatedRows.reduce((sum, row) => sum + sanitizeNumber(row.debit), 0);
     const balanceSum = calculatedRows.reduce((sum, row) => sum + sanitizeNumber(row.balance), 0);
-
     const exchangeRate = sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00');
 
     const pinnedBottomRow = [
@@ -107,7 +141,7 @@ export default function PayableSheet({ name, data, onChange, settings, setSettin
         desc: 'HKD Total (Converted)',
         invoice: '',
         debit: formatNumber(debitSum * exchangeRate, true),
-        balance: formatNumber(balanceSum, true),
+        balance: formatNumber(balanceSum * exchangeRate, true),
         id: 'summary-row-converted',
       },
     ];
@@ -118,12 +152,49 @@ export default function PayableSheet({ name, data, onChange, settings, setSettin
     return { rows: calculatedRows, pinnedBottomRow };
   }, [data?.rows, settings.exchangeRates]);
 
+  useEffect(() => {
+    if (gridRef.current?.api && data?.rows) {
+      gridRef.current.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+      gridRef.current.api.redrawRows();
+      console.log(`Set pinned bottom rows for PayableSheet:`, pinnedBottomRow);
+    }
+  }, [pinnedBottomRow, data?.rows]);
+
+  const handleGridReady = (params: any) => {
+    gridRef.current = params;
+    params.api.resetColumnState(); // Ensure id is hidden
+    params.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+    params.api.sizeColumnsToFit();
+    params.api.redrawRows();
+    console.log(`Grid ready for PayableSheet, columns sized, pinned rows set:`, pinnedBottomRow);
+  };
+
+  const getPinnedRowStyle = () => ({
+    fontWeight: 'bold',
+    backgroundColor: '#e8e8e8',
+    color: '#000',
+    borderBottom: '1px solid #aaa',
+    height: '70px',
+    fontSize: '14px',
+  });
+
   return (
-    <div className="custom-grid-container" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div className="sticky-title">
+    <div
+      className="custom-grid-container"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <div className="sticky-title" style={{ flex: '0 0 auto' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>應   付   費   用</div>
         <div>
-          應   付   費   用
-          {' '}
           公司名稱:{' '}
           <input
             value={settings.companyName || ''}
@@ -139,13 +210,35 @@ export default function PayableSheet({ name, data, onChange, settings, setSettin
           />
         </div>
       </div>
-      <div className="grid-wrapper" style={{ flex: 1, overflow: 'auto' }}>
-        <div className="ag-theme-alpine custom-grid" style={{ width: '100%', height: 'calc(100vh - 180px)' }}>
+      <div
+        style={{
+          flex: '1 1 auto',
+          position: 'relative',
+          minHeight: 0,
+        }}
+      >
+        <div
+          className="ag-theme-alpine custom-grid"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        >
           <AgGridReact
             ref={gridRef}
             rowData={rows}
             pinnedBottomRowData={pinnedBottomRow}
             columnDefs={columns}
+            defaultColDef={{
+              editable: false,
+              resizable: true,
+              suppressSizeToFit: true,
+              minWidth: 80,
+            }}
+            onGridReady={handleGridReady}
             onCellValueChanged={(params) => {
               const newRows = [...rows];
               newRows[params.node.rowIndex] = {
@@ -158,9 +251,10 @@ export default function PayableSheet({ name, data, onChange, settings, setSettin
               if (gridRef.current?.api) {
                 gridRef.current.api.stopEditing(false);
                 gridRef.current.api.clearFocusedCell();
+                gridRef.current.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+                gridRef.current.api.redrawRows();
               }
             }}
-            defaultColDef={{ editable: true, resizable: true }}
             enableClipboard={true}
             processCellForClipboard={(params) => params.value}
             processCellFromClipboard={(params) => params.value}
@@ -170,8 +264,41 @@ export default function PayableSheet({ name, data, onChange, settings, setSettin
             suppressMoveWhenRowDragging={true}
             suppressFocusAfterRefresh={true}
             headerHeight={30}
-            rowHeight={25}
-            pinnedRowHeight={25}
+            rowHeight={30}
+            pinnedRowHeight={70}
+            domLayout="normal"
+            suppressColumnVirtualisation={true}
+            suppressRowVirtualisation={true}
+            suppressNoRowsOverlay={true}
+            cellStyle={(params) => {
+              if (params.node.rowPinned) {
+                return {
+                  display: 'flex',
+                  alignItems: 'center',
+                  overflow: 'visible',
+                  backgroundColor: '#e8e8e8',
+                  fontWeight: 'bold',
+                  color: '#000',
+                };
+              }
+              return {
+                display: 'flex',
+                alignItems: 'center',
+                overflow: 'visible',
+              };
+            }}
+            getRowStyle={(params) => {
+              if (params.node.rowPinned) {
+                return getPinnedRowStyle();
+              }
+              return null;
+            }}
+            onFirstDataRendered={(params) => {
+              params.api.sizeColumnsToFit();
+              params.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
+              params.api.redrawRows();
+              console.log(`First data rendered for PayableSheet, columns sized, pinned rows:`, pinnedBottomRow);
+            }}
           />
         </div>
       </div>

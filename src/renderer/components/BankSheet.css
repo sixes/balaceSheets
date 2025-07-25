@@ -1,26 +1,29 @@
+/* Global box-sizing */
+html, body, * {
+  box-sizing: border-box;
+}
+
 /* Styling for the sticky title section */
 .custom-grid-container .sticky-title {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background-color: #f4f4f4; /* Match header background */
+  background-color: #f4f4f4;
   padding: 8px;
-  border-bottom: 1px solid #e0e0e0; /* Match grid borders */
+  border-bottom: 1px solid #e0e0e0;
   font-size: 14px;
   line-height: 1.5;
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Add spacing between header elements */
+  gap: 8px;
 }
 
-/* Styling for header input rows to align inputs */
 .custom-grid-container .sticky-title div {
   display: flex;
   align-items: center;
-  gap: 8px; /* Space between label and input */
+  gap: 8px;
 }
 
-/* Styling for inputs to ensure consistent appearance */
 .custom-grid-container .sticky-title input {
   font-size: 13px;
   padding: 2px 4px;
@@ -28,7 +31,6 @@
   border-radius: 3px;
 }
 
-/* Styling for the grid wrapper */
 .custom-grid-container .grid-wrapper {
   flex: 1;
   overflow: auto;
@@ -36,62 +38,56 @@
   padding: 0;
 }
 
-/* Styling for the AG Grid container */
 .custom-grid {
-  width: 100%;
-  height: 100% !important; /* Ensure grid takes full height of wrapper */
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  resize: horizontal;
 }
 
-/* Styling for grid cells */
 .custom-grid .ag-cell {
-  border: 0.5px solid #e0e0e0; /* Thin, subtle border for cell frames */
+  border: 0.5px solid #e0e0e0;
   font-size: 13px;
-  line-height: 25px; /* Match rowHeight */
+  line-height: 30px;
 }
 
-/* Styling for header cells */
 .custom-grid .ag-header {
   position: sticky;
   top: 0;
-  z-index: 10; /* Above content, below sticky-title */
-  background-color: #f4f4f4; /* Light gray background */
+  z-index: 10;
+  background-color: #f4f4f4;
 }
 
 .custom-grid .ag-header-cell {
-  border: 0.5px solid #e0e0e0; /* Thin, subtle border */
+  border: 0.5px solid #e0e0e0;
   font-weight: 500;
   font-size: 13px;
 }
 
-/* Styling for rows */
 .custom-grid .ag-row {
-  border-bottom: 0.5px solid #e0e0e0; /* Thin row separator */
+  border-bottom: 0.5px solid #e0e0e0;
 }
 
-/* Styling for focused cells */
 .custom-grid .ag-cell-focus {
-  outline: 1px solid #0078d4; /* Highlight focused cell */
+  outline: 1px solid #0078d4;
 }
 
-/* Styling for pinned bottom rows */
 .custom-grid .ag-row-pinned {
-  background-color: #e8ecef; /* Slightly darker background */
-  font-weight: 600; /* Bolder text */
-  border-top: 1px solid #e0e0e0; /* Clear separation */
-  z-index: 5; /* Above content, below headers */
+  {
+  background-color: #e8ecef;
+  font-weight: 600;
+  border-top: 1px solid #e0e0e0;
+  z-index: 5;
 }
 
-/* Ensure no extra space in the grid container */
 .custom-grid-container {
   flex: 1;
   overflow: hidden;
   margin: 0;
   padding: 0;
+  min-width: 100% !important;
 }
 
-/* Update your CSS to ensure proper display */
-
-/* Reset global styles to prevent scrolling */
 html, body {
   margin: 0;
   padding: 0;
@@ -100,109 +96,72 @@ html, body {
   width: 100%;
 }
 
-/* Ensure the app container has no scrolling */
 #root {
   height: 100%;
   overflow: hidden;
 }
 
-/* Fix for grid layout */
 .ag-theme-alpine.custom-grid {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
 }
 
-/* Make sure the bottom rows are visible and opaque */
 .ag-theme-alpine .ag-floating-bottom {
   position: sticky !important;
   bottom: 0 !important;
-  z-index: 10;
-  background-color: #e8e8e8;
-  border-top: 2px solid #888;
+  z-index: 20 !important;
+  background-color: #e8e8e8 !important;
+  border-top: 2px solid #888 !important;
   height: auto !important;
-}
-
-/* Make each floating bottom row visible */
-.ag-theme-alpine .ag-floating-bottom .ag-row,
-.ag-theme-alpine .ag-floating-bottom .ag-row-pinned {
-  height: 35px !important;
-  min-height: 35px !important;
-  background-color: #e8e8e8 !important; /* Slightly darker for emphasis */
-  font-weight: bold !important; /* Bolder text */
-  font-size: 14px !important; /* Larger text */
-  border-bottom: 1px solid #aaa !important; /* Border between rows */
+  min-height: 140px !important;
   opacity: 1 !important;
   visibility: visible !important;
-  display: flex !important;
+  display: block !important;
 }
 
-/* Style for floating bottom rows - individual row */
-.ag-theme-alpine .ag-floating-bottom-viewport .ag-row {
+.ag-theme-alpine .ag-floating-bottom .ag-row,
+.ag-theme-alpine .ag-floating-bottom .ag-row-pinned {
+  height: 70px !important;
+  min-height: 70px !important;
+  max-height: 70px !important;
   background-color: #e8e8e8 !important;
-  height: 35px !important;
-  min-height: 35px !important;
+  font-weight: bold !important;
+  font-size: 14px !important;
+  line-height: 70px !important;
   border-bottom: 1px solid #aaa !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
-/* Fix cells in floating rows */
 .ag-theme-alpine .ag-floating-bottom .ag-cell {
   display: flex !important;
   align-items: center !important;
-  background-color: #e8e8e8 !important; /* Match row background */
+  background-color: #e8e8e8 !important;
   border: 1px solid #ccc !important;
   opacity: 1 !important;
-  justify-content: flex-start !important; /* Align content properly */
+  visibility: visible !important;
+  justify-content: flex-start !important;
   overflow: visible !important;
-  padding: 0 8px !important; /* Add some padding */
+  padding: 0 8px !important;
   white-space: nowrap !important;
-  line-height: 50px !important; /* Match the row height */
-}
-
-/* Style for cells in floating bottom rows */
-.ag-theme-alpine .ag-floating-bottom-viewport .ag-row .ag-cell {
-  display: flex !important;
-  align-items: center !important;
-  background-color: #e8e8e8 !important;
-  border-right: 1px solid #ccc !important;
-  font-weight: bold !important;
+  line-height: 70px !important;
   font-size: 14px !important;
   color: #000 !important;
 }
 
-/* Fix for floating bottom content visibility */
-.ag-theme-alpine .ag-floating-bottom .ag-cell-value {
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  color: #000 !important;
-  width: 100% !important;
-  font-weight: bold !important;
-  font-size: 14px !important; /* Larger text */
-}
-
-/* Ensure the USD and HKD total texts are clearly visible */
-.ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="desc"] {
-  font-weight: bold !important;
-  color: #000 !important;
-}
-
-/* Ensure numeric values in pinned rows stand out */
 .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="debit"],
 .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="credit"],
 .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="balance"] {
-  font-weight: bold !important;
-  color: #000 !important;
-  justify-content: flex-end !important; /* Right-align numbers */
+  justify-content: flex-end !important;
   text-align: right !important;
 }
 
-/* Fix viewport issues to ensure bottom rows are visible */
 .ag-center-cols-clipper {
   min-height: auto !important;
   max-height: none !important;
@@ -211,46 +170,29 @@ html, body {
 .ag-body-viewport-wrapper {
   min-height: auto !important;
   max-height: none !important;
-  overflow: hidden !important; /* Important to see pinned rows */
+  overflow: hidden !important;
 }
 
-/* Ensure grid body scrolls but doesn't cover bottom rows */
 .ag-body-viewport {
   overflow: auto !important;
   max-height: none !important;
-  display: block !important;
+  width: 100% !important;
+  min-width: 100% !important;
 }
 
-/* Make sure floating container is not hidden */
 .ag-floating-bottom-container {
   overflow: visible !important;
-  height: auto !important; /* No scrollbars in pinned rows */
+  height: auto !important;
 }
 
-/* Ensure the floating viewport doesn't overflow its container */
-.ag-floating-bottom-viewport {
-  overflow: hidden !important; /* No scrollbars */
-}
-
-/* AG-specific override for floating rows */
-.ag-floating-bottom-full-width-container {
-  overflow: hidden !important;
-}
-
-/* Fix the full-width container for floating bottom rows */
-.ag-floating-bottom-full-width-container {
-  overflow: hidden !important;
-}
-
-/* Fix the floating bottom to attach directly to the bottom of the viewport */
 .ag-root-wrapper, .ag-layout-normal {
   height: 100% !important;
+  width: 100% !important;
+  min-width: 100% !important;
 }
 
-.ag-theme-alpine .ag-root-wrapper,
-.ag-theme-alpine .ag-root,
-.ag-theme-alpine .ag-body-viewport,
-.ag-theme-alpine .ag-center-cols-viewport,
-.ag-theme-alpine .ag-center-cols-container {
-  width: auto !important; /* Remove forced width */
+.ag-center-cols-viewport,
+.ag-center-cols-container {
+  width: 100% !important;
+  min-width: 100% !important;
 }

@@ -26,14 +26,53 @@ const defaultSheets = [
   { name: '股本', type: 'capital' },
 ];
 
-const defaultBankRows = [
-  { cellRef: 1, date: '上年餘額', subject: '', desc: '', debit: '', credit: '', balance: '0.00', invoice: '', id: 'row-1' },
-  ...Array(9).fill({ cellRef: '', date: '', subject: '', desc: '', debit: '', credit: '', balance: '', invoice: '' }).map((row, index) => ({
-    ...row,
-    cellRef: index + 2,
-    id: `row-${index + 2}`,
-  })),
-];
+const defaultBankRows = Array(50).fill(null).map((_, index) => ({
+  cellRef: index + 1,
+  date: '',
+  subject: '',
+  desc: '',
+  debit: '',
+  credit: '',
+  balance: '',
+  invoice: '',
+  id: `row-${index + 1}`,
+}));
+
+const defaultNonBankRows = Array(50).fill(null).map((_, index) => ({
+  no: index + 1,
+  date: '',
+  subject: '',
+  desc: '',
+  invoice: '',
+  credit: '',
+  debit: '',
+  balance: '',
+  id: `row-${index + 1}`,
+}));
+
+const defaultCapitalRows = Array(50).fill(null).map((_, index) => ({
+  no: index + 1,
+  date: '',
+  subject: '',
+  desc: '',
+  invoice: '',
+  debit: '',
+  balance: '',
+  id: `row-${index + 1}`,
+}));
+
+const defaultAdminFeeRows = Array(50).fill(null).map((_, index) => ({
+  cellRef: index + 1,
+  date: '',
+  subject: '',
+  desc: '',
+  invoice: '',
+  debit: '',
+  credit: '',
+  debitOrCredit: '',
+  balance: '',
+  id: `row-${index + 1}`,
+}));
 
 const defaultExchangeRates = {
   'HSBC-USD': '7.79',
@@ -82,7 +121,6 @@ export default function App() {
     return isPinned && value < 0 ? `(${formatted})` : formatted;
   };
 
-  // Load data/settings on mount
   useEffect(() => {
     window.electronAPI
       .loadData()
@@ -140,7 +178,6 @@ export default function App() {
       });
   }, []);
 
-  // Auto-save data
   useEffect(() => {
     if (authed) {
       console.log('Saving sheetData:', sheetData);
@@ -150,7 +187,6 @@ export default function App() {
     }
   }, [sheetData, authed]);
 
-  // Auto-save settings
   useEffect(() => {
     if (authed) {
       console.log('Saving settings:', settings);
@@ -160,12 +196,10 @@ export default function App() {
     }
   }, [settings, authed]);
 
-  // Log sheet switch
   useEffect(() => {
     console.log('Switched to sheet:', activeSheet, 'Data:', sheetData[activeSheet], 'ExchangeRate:', settings.exchangeRates[activeSheet]);
   }, [activeSheet, sheetData, settings.exchangeRates]);
 
-  // Add new sheet
   const addSheet = () => {
     let sheetName = newSheetSelection === 'custom' ? customSheetName : newSheetSelection;
     if (!sheetName) {
@@ -204,7 +238,7 @@ export default function App() {
         setNewSheetError('Invalid sheet type selected');
         return;
       }
-      rowsData = [];
+      rowsData = defaultAdminFeeRows;
     }
 
     const newSheet = { name: sheetName, type: sheetType };
@@ -228,7 +262,36 @@ export default function App() {
     console.log('Added new sheet:', sheetName, 'Type:', sheetType, 'Sheets:', newSheets, 'SheetData:', newSheetData);
   };
 
-  // Handle sheet switch
+  const handleDeleteSheet = (sheetName: string) => {
+    const sheet = sheets.find((s) => s.name === sheetName);
+    if (!sheet || sheet.type !== 'bank') {
+      console.log(`Cannot delete sheet ${sheetName}: not a bank sheet or not found`);
+      return;
+    }
+
+    const newSheets = sheets.filter((s) => s.name !== sheetName);
+    if (newSheets.length === 0) {
+      setNewSheetError('Cannot delete the last sheet');
+      return;
+    }
+
+    const newSheetData = { ...sheetData };
+    delete newSheetData[sheetName];
+
+    const newExchangeRates = { ...settings.exchangeRates };
+    delete newExchangeRates[sheetName];
+
+    setSheets(newSheets);
+    setSheetData(newSheetData);
+    setSettings({ ...settings, exchangeRates: newExchangeRates });
+
+    if (activeSheet === sheetName) {
+      setActiveSheet(newSheets[0].name);
+    }
+
+    console.log(`Deleted bank sheet ${sheetName}, new sheets:`, newSheets, 'new sheetData:', newSheetData);
+  };
+
   const handleSheetSwitch = useCallback(
     (sheetName: string) => {
       console.log('Switching to sheet:', sheetName);
@@ -236,18 +299,19 @@ export default function App() {
         bankSheetRef.current.saveCurrentEdit();
       }
 
-      if (['銷售收入', '銷售成本', '銀行費用', '利息收入', '應付費用', '董事往來'].includes(sheetName)) {
+      if (['銷售收入', '銷售成本', '銀行費用', '利息收入', '應付費用', '董事往來', '股本'].includes(sheetName)) {
         const sheetConfig = {
-          '銷售收入': { subjects: ['销售收入'], sourceField: 'debit', targetField: 'credit' },
-          '銷售成本': { subjects: ['销售成本'], sourceField: 'credit', targetField: 'debit' },
-          '銀行費用': { subjects: ['银行费用'], sourceField: 'credit', targetField: 'debit' },
-          '利息收入': { subjects: ['利息收入'], sourceField: 'debit', targetField: 'credit' },
-          '應付費用': { subjects: ['董事往來', '股東往來'], sourceField: 'credit', targetField: 'debit' },
-          '董事往來': { subjects: ['董事往来'], sourceField: 'credit', targetField: 'debit' },
+          '銷售收入': { subjects: ['销售收入'], sourceField: 'debit', targetField: 'credit', rows: defaultNonBankRows },
+          '銷售成本': { subjects: ['销售成本'], sourceField: 'credit', targetField: 'debit', rows: defaultNonBankRows },
+          '銀行費用': { subjects: ['银行费用'], sourceField: 'credit', targetField: 'debit', rows: defaultNonBankRows },
+          '利息收入': { subjects: ['利息收入'], sourceField: 'debit', targetField: 'credit', rows: defaultNonBankRows },
+          '應付費用': { subjects: ['董事往來', '股東往來'], sourceField: 'credit', targetField: 'debit', rows: defaultNonBankRows },
+          '董事往來': { subjects: ['董事往来'], sourceField: 'credit', targetField: 'debit', rows: defaultNonBankRows },
+          '股本': { subjects: ['股本'], sourceField: 'credit', targetField: 'debit', rows: defaultCapitalRows },
         };
-        const { subjects, sourceField, targetField } = sheetConfig[sheetName];
+        const { subjects, sourceField, targetField, rows } = sheetConfig[sheetName];
         setSheetData((prev: any) => {
-          const clearedData = { rows: [], account: '' };
+          const clearedData = { rows: rows, account: prev[sheetName]?.account || '' };
           console.log(`Cleared ${sheetName} data:`, clearedData);
           const bankSheets = Object.keys(prev).filter((name) => sheets.find((s) => s.name === name)?.type === 'bank');
           let targetRows: any[] = [];
@@ -266,7 +330,7 @@ export default function App() {
                   invoice: row.invoice || '',
                   [targetField]: row[sourceField],
                   balance: sheetName === '銀行費用' ? '' : formatNumber(sanitizeNumber(row[sourceField]) * exchangeRate),
-                  id: `${sheetName === '銷售收入' ? 'sales' : sheetName === '銷售成本' ? 'cost' : sheetName === '銀行費用' ? 'fee' : sheetName === '利息收入' ? 'interest' : sheetName === '應付費用' ? 'payable' : 'director'}-row-${bankSheetName}-${index}`,
+                  id: `${sheetName === '銷售收入' ? 'sales' : sheetName === '銷售成本' ? 'cost' : sheetName === '銀行費用' ? 'fee' : sheetName === '利息收入' ? 'interest' : sheetName === '應付費用' ? 'payable' : sheetName === '董事往來' ? 'director' : 'capital'}-row-${bankSheetName}-${index}`,
                 });
               }
             });
@@ -295,10 +359,16 @@ export default function App() {
       setSheetData((prev: any) => {
         if (!prev[sheetName]) {
           console.log('Initializing data for sheet:', sheetName);
+          const sheetType = sheets.find((s) => s.name === sheetName)?.type;
+          const defaultRows = sheetType === 'bank' ? defaultBankRows :
+                             sheetType === 'capital' ? defaultCapitalRows :
+                             sheetType === 'registration' || sheetType === 'secretary' || 
+                             sheetType === 'salary' || sheetType === 'audit' ? defaultAdminFeeRows :
+                             defaultNonBankRows;
           return {
             ...prev,
             [sheetName]: {
-              rows: defaultSheets.find((s) => s.name === sheetName)?.type === 'bank' ? defaultBankRows : [],
+              rows: defaultRows,
               account: '',
             },
           };
@@ -312,19 +382,20 @@ export default function App() {
 
   return (
     <div style={{ 
-      height: '100vh', // Changed from 105vh to 100vh
+      height: '100vh',
       overflow: 'hidden',
       display: 'flex', 
       flexDirection: 'column', 
       margin: 0, 
       padding: 0,
-      position: 'absolute', // Add absolute positioning
+      position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
-      bottom: 0
+      bottom: 0,
+      minWidth: '100%',
+      flex: 1
     }}>
-      {/* Sheet tabs - fixed at top */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -335,9 +406,9 @@ export default function App() {
         lineHeight: '32px',
         borderBottom: '1px solid #ccc',
         backgroundColor: '#f5f5f5',
-        zIndex: 10 // Ensure it's above other content
+        zIndex: 10
       }}>
-        <SheetTabs sheets={sheets} active={activeSheet} onSelect={handleSheetSwitch} />
+        <SheetTabs sheets={sheets} active={activeSheet} onSelect={handleSheetSwitch} onDelete={handleDeleteSheet} />
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <select
             value={newSheetSelection}
@@ -373,7 +444,6 @@ export default function App() {
         </div>
       </div>
       
-      {/* Error message - if any */}
       {newSheetError && (
         <div style={{ 
           color: 'red', 
@@ -386,12 +456,12 @@ export default function App() {
         </div>
       )}
       
-      {/* Main content area - sheets */}
       <div style={{ 
         flex: 1, 
         position: 'relative',
-        overflow: 'hidden', // Hide any overflow
-        minHeight: 0 // Important for flex containers
+        overflow: 'hidden',
+        minHeight: 0,
+        minWidth: '100%'
       }}>
         {(() => {
           const props = {
