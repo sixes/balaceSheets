@@ -1,186 +1,64 @@
 /* AdminFeeSheet.css */
 
 /* Global box-sizing */
-html, body, * {
-    box-sizing: border-box;
+* {
+  box-sizing: border-box;
 }
 
 /* Styling for the sticky title section */
-.adminfee-sheet .custom-grid-container .sticky-title {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background-color: #f4f4f4;
-    padding: 8px;
-    border-bottom: 1px solid #e0e0e0;
-    font-size: 14px;
-    line-height: 1.5;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.admin-fee-grid-container .sticky-title {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: #f4f4f4;
+  padding: 8px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 14px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.adminfee-sheet .custom-grid-container .sticky-title div {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.admin-fee-grid-container .sticky-title div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.adminfee-sheet .custom-grid-container .sticky-title input {
-    font-size: 13px;
-    padding: 2px 4px;
-    border: 1px solid #e0e0e0;
-    border-radius: 3px;
+/* Button styling */
+.admin-fee-grid-container button {
+  padding: 4px 8px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
 }
 
-.adminfee-sheet .custom-grid-container .grid-wrapper {
-    flex: 1;
-    overflow: auto;
-    margin: 0;
-    padding: 0;
+.admin-fee-grid-container button:hover:not(:disabled) {
+  background-color: #e0e0e0;
 }
 
-.adminfee-sheet .custom-grid {
-    width: 100% !important;
-    height: 100% !important;
-    min-width: 100% !important;
-    resize: horizontal;
+.admin-fee-grid-container button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.adminfee-sheet .custom-grid .ag-cell {
-    border: 0.5px solid #e0e0e0;
-    font-size: 13px;
-    line-height: 30px;
+/* AG Grid styling */
+.admin-fee-grid {
+  width: 100%;
+  height: 100%;
 }
 
-.adminfee-sheet .custom-grid .ag-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: #f4f4f4;
+.admin-fee-grid .ag-header-cell {
+  text-align: center;
+  background-color: #f4f4f4;
+  border-right: 1px solid #e0e0e0;
 }
 
-.adminfee-sheet .custom-grid .ag-header-cell {
-    border: 0.5px solid #e0e0e0;
-    font-weight: 500;
-    font-size: 13px;
-}
-
-.adminfee-sheet .custom-grid .ag-row {
-    border-bottom: 0.5px solid #e0e0e0;
-}
-
-.adminfee-sheet .custom-grid .ag-cell-focus {
-    outline: 1px solid #0078d4;
-}
-
-.adminfee-sheet .custom-grid .ag-row-pinned {
-    background-color: #e8ecef;
-    font-weight: 600;
-    border-top: 1px solid #e0e0e0;
-    z-index: 5;
-}
-
-.adminfee-sheet .custom-grid-container {
-    flex: 1;
-    overflow: hidden;
-    margin: 0;
-    padding: 0;
-    min-width: 100% !important;
-}
-
-.adminfee-sheet .ag-theme-alpine.custom-grid {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100% !important;
-    height: 100% !important;
-    min-width: 100% !important;
-}
-
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom {
-    position: sticky !important;
-    bottom: 0 !important;
-    z-index: 20 !important;
-    background-color: #e8e8e8 !important;
-    border-top: 2px solid #888 !important;
-    height: 140px !important;
-    min-height: 140px !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: block !important;
-}
-
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-row,
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-row-pinned {
-    height: 70px !important;
-    min-height: 70px !important;
-    max-height: 70px !important;
-    background-color: #e8e8e8 !important;
-    font-weight: bold !important;
-    font-size: 14px !important;
-    line-height: 70px !important;
-    border-bottom: 1px solid #aaa !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell {
-    display: flex !important;
-    align-items: center !important;
-    background-color: #e8e8e8 !important;
-    border: 1px solid #ccc !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    justify-content: flex-start !important;
-    overflow: visible !important;
-    padding: 0 8px !important;
-    white-space: nowrap !important;
-    line-height: 70px !important;
-    font-size: 14px !important;
-    color: black !important;
-}
-
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="debit"],
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="credit"],
-.adminfee-sheet .ag-theme-alpine .ag-floating-bottom .ag-cell[col-id="balance"] {
-    justify-content: flex-end !important;
-    text-align: right !important;
-}
-
-.adminfee-sheet .ag-center-cols-clipper {
-    min-height: auto !important;
-    max-height: none !important;
-}
-
-.adminfee-sheet .ag-body-viewport-wrapper {
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: hidden !important;
-}
-
-.adminfee-sheet .ag-body-viewport {
-    overflow: auto !important;
-    max-height: none !important;
-    width: 100% !important;
-    min-width: 100% !important;
-}
-
-.adminfee-sheet .ag-floating-bottom-container {
-    overflow: visible !important;
-    height: 140px !important;
-}
-
-.adminfee-sheet .ag-root-wrapper, .adminfee-sheet .ag-layout-normal {
-    height: 100% !important;
-    width: 100% !important;
-    min-width: 100% !important;
-}
-
-.adminfee-sheet .ag-center-cols-viewport,
-.adminfee-sheet .ag-center-cols-container {
-    width: 100% !important;
-    min-width: 100% !important;
+.admin-fee-grid .ag-cell {
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 8px;
 }

@@ -1,46 +1,15 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useCallback, useMemo, useState, useRef, forwardRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import './AdminFeeSheet.css';
 
-type Props = {
-  name: string;
-  data: any;
-  onChange: (data: any) => void;
-  allSheets: any;
-  setAllSheets: (data: any) => void;
-  settings: any;
-  setSettings: (s: any) => void;
-};
-
-export default function AdminFeeSheet({ name, data, onChange, settings, setSettings }: Props) {
+const AdminFeeSheet = forwardRef(({ name, onChange, data, allSheets, setAllSheets, settings, setSettings }, ref) => {
   const gridRef = useRef<any>(null);
+  const [selectedRowsCount, setSelectedRowsCount] = useState(0);
+  const [currentEdit, setCurrentEdit] = useState<any>(null);
 
-  // Initialize data if undefined
-  useEffect(() => {
-    if (!data || !data.rows) {
-      console.log(`Initializing data for ${name}`);
-      onChange({ rows: [], account: '' });
-    }
-  }, [data, name, onChange]);
-
-  // Clear grid focus
-  useEffect(() => {
-    if (gridRef.current?.api) {
-      gridRef.current.api.stopEditing();
-      gridRef.current.api.clearFocusedCell();
-      console.log(`Grid focus cleared for ${name}`);
-    }
-    return () => {
-      if (gridRef.current?.api) {
-        gridRef.current.api.stopEditing();
-        gridRef.current.api.clearFocusedCell();
-        console.log(`Grid cleaned up for ${name}`);
-      }
-    };
-  }, [name]);
-
+  // Format and sanitize number functions
   const formatNumber = (value: number, isPinned: boolean = false): string => {
     if (isNaN(value) || value === null || value === undefined) return '0.00';
     const absValue = Math.abs(value);
@@ -58,6 +27,97 @@ export default function AdminFeeSheet({ name, data, onChange, settings, setSetti
     return parseFloat(value) || 0;
   };
 
+  // Function to add a row
+  const addRow = useCallback(() => {
+    const rows = data?.rows || [];
+    const lastRow = rows.length > 0 ? rows[rows.length - 1] : null;
+    const newRow = {
+      cellRef: lastRow ? Number(lastRow.cellRef || 0) + 1 : 1,
+      date: '',
+      subject: '',
+      desc: '',
+      invoice: '',
+      debit: '',
+      credit: '',
+      balance: '',
+      id: `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+    
+    onChange({
+      ...data,
+      rows: [...(data?.rows || []), newRow],
+    });
+  }, [data, onChange]);
+
+  // Function to delete selected rows
+  const deleteSelectedRows = useCallback(() => {
+    if (!gridRef.current?.api) return;
+    
+    const selectedNodes = gridRef.current.api.getSelectedNodes();
+    if (selectedNodes.length === 0) return;
+    
+    const selectedIds = selectedNodes.map((node: any) => node.data.id);
+    const newRows = data.rows.filter((row: any) => !selectedIds.includes(row.id));
+    
+    // Recalculate cellRef values to be sequential
+    const updatedRows = newRows.map((row: any, index: number) => ({
+      ...row,
+      cellRef: index + 1,
+    }));
+    
+    onChange({
+      ...data,
+      rows: updatedRows,
+    });
+    
+    setSelectedRowsCount(0);
+  }, [data, onChange]);
+
+  // Create rows and pinnedBottomRow with calculations
+  const { rows, pinnedBottomRow } = useMemo(() => {
+    const uniqueRows = data?.rows || [];
+    
+    // Calculate sums for debit and credit
+    const debitSum = uniqueRows.reduce((sum, row) => sum + sanitizeNumber(row.debit), 0);
+    const creditSum = uniqueRows.reduce((sum, row) => sum + sanitizeNumber(row.credit), 0);
+    const balanceSum = debitSum - creditSum;
+    
+    // Create TWO pinnedBottom rows with proper cellRef values
+    const pinnedBottom = [
+      {
+        cellRef: '', // Use empty string instead of 'T1'
+        date: '',
+        subject: '',
+        desc: '合計 (HKD)',
+        debit: formatNumber(debitSum, true),
+        credit: formatNumber(creditSum, true),
+        balance: formatNumber(balanceSum, true),
+        invoice: '',
+        id: 'pinned-hkd-total',
+      },
+      {
+        cellRef: '', // Use empty string instead of 'T2'
+        date: '',
+        subject: '',
+        desc: '總計',
+        debit: formatNumber(debitSum, true),
+        credit: formatNumber(creditSum, true),
+        balance: formatNumber(balanceSum, true),
+        invoice: '',
+        id: 'pinned-grand-total',
+      }
+    ];
+    
+    return { rows: uniqueRows, pinnedBottomRow: pinnedBottom };
+  }, [data?.rows, sanitizeNumber, formatNumber]);
+
+  // Function to handle row selection
+  const handleSelectionChanged = useCallback(() => {
+    const selectedNodes = gridRef.current?.api?.getSelectedNodes() || [];
+    setSelectedRowsCount(selectedNodes.length);
+  }, []);
+
+  // Column definitions
   const columns = useMemo(
     () => [
       { 
@@ -65,158 +125,130 @@ export default function AdminFeeSheet({ name, data, onChange, settings, setSetti
         field: 'cellRef', 
         width: 80, 
         editable: false,
-        valueFormatter: (params) => params.value || ''
+        valueFormatter: (params) => {
+          // Return empty string for pinned rows to avoid "Invalid number"
+          if (params.node.rowPinned) {
+            return '';
+          }
+          // For normal rows, just return the value
+          return params.value;
+        }
       },
+      { headerName: '日  期', field: 'date', flex: 1, minWidth: 120, editable: (params) => !params.node.rowPinned },
+      { headerName: '對方科目', field: 'subject', flex: 1, minWidth: 120, editable: (params) => !params.node.rowPinned },
+      { headerName: '摘   要', field: 'desc', flex: 1, minWidth: 120, editable: (params) => !params.node.rowPinned },
+      { headerName: '發票號碼', field: 'invoice', flex: 1, minWidth: 120, editable: (params) => !params.node.rowPinned },
       { 
-        headerName: '日  期', 
-        field: 'date', 
+        headerName: '借     方', 
+        field: 'debit', 
         flex: 1, 
         minWidth: 120, 
-        editable: true,
-        valueFormatter: (params) => params.value || ''
+        editable: (params) => !params.node.rowPinned,
+        valueFormatter: (params) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
       },
       { 
-        headerName: '科   目', 
-        field: 'subject', 
+        headerName: '貸     方', 
+        field: 'credit', 
         flex: 1, 
         minWidth: 120, 
-        editable: true,
-        valueFormatter: (params) => params.value || ''
+        editable: (params) => !params.node.rowPinned,
+        valueFormatter: (params) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
       },
       { 
-        headerName: '摘   要', 
-        field: 'desc', 
+        headerName: '餘    額', 
+        field: 'balance', 
         flex: 1, 
         minWidth: 120, 
-        editable: true,
-        valueFormatter: (params) => params.value || ''
+        editable: (params) => !params.node.rowPinned,
+        valueFormatter: (params) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
       },
-      { 
-        headerName: '發票號碼', 
-        field: 'invoice', 
-        flex: 1, 
-        minWidth: 120, 
-        editable: true,
-        valueFormatter: (params) => params.value || ''
-      },
-      {
-        headerName: '借     方',
-        field: 'debit',
-        flex: 1,
-        minWidth: 120,
-        editable: true,
-        valueFormatter: (params: any) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
-      },
-      {
-        headerName: '貸     方',
-        field: 'credit',
-        flex: 1,
-        minWidth: 120,
-        editable: true,
-        valueFormatter: (params: any) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
-      },
-      {
-        headerName: '借或贷',
-        field: 'debitOrCredit',
-        flex: 1,
-        minWidth: 100,
-        editable: true,
-        cellEditor: 'agSelectCellEditor',
-        cellEditorParams: { values: ['', '借', '贷'] },
-        valueFormatter: (params) => params.value || ''
-      },
-      {
-        headerName: '餘    額',
-        field: 'balance',
-        flex: 1,
-        minWidth: 120,
-        editable: false,
-        valueFormatter: (params: any) => (params.value ? formatNumber(sanitizeNumber(params.value), params.node?.rowPinned) : '0.00'),
-      },
-      { field: 'id', hide: true }, // Prevent "Invalid number"
     ],
-    []
+    [formatNumber, sanitizeNumber]
   );
 
-  const { rows, pinnedBottomRow } = useMemo(() => {
-    const rowsArray = Array.isArray(data?.rows) ? data.rows : [];
-    const calculatedRows = rowsArray.map((row, index) => ({
-      ...row,
-      cellRef: row.cellRef || index + 1,
-      id: row.id || `${name}-row-${index + 1}`,
-      balance: formatNumber(
-        (sanitizeNumber(row.debit) - sanitizeNumber(row.credit)) * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00'),
-        false
-      ),
-    }));
-
-    const debitSum = calculatedRows.reduce((sum, row) => sum + sanitizeNumber(row.debit), 0);
-    const creditSum = calculatedRows.reduce((sum, row) => sum + sanitizeNumber(row.credit), 0);
-    const balanceSum = calculatedRows.reduce((sum, row) => sum + sanitizeNumber(row.balance), 0);
-    const exchangeRate = sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00');
-
-    const pinnedBottomRow = [
-      {
-        cellRef: '',
-        date: '',
-        subject: '',
-        desc: 'HKD Total',
-        invoice: '',
-        debit: formatNumber(debitSum, true),
-        credit: formatNumber(creditSum, true),
-        debitOrCredit: '',
-        balance: formatNumber(balanceSum, true),
-        id: 'summary-row-hkd',
-      },
-      {
-        cellRef: '',
-        date: '',
-        subject: '',
-        desc: 'HKD Total (Converted)',
-        invoice: '',
-        debit: formatNumber(debitSum * exchangeRate, true),
-        credit: formatNumber(creditSum * exchangeRate, true),
-        debitOrCredit: '',
-        balance: formatNumber(balanceSum * exchangeRate, true),
-        id: 'summary-row-converted',
-      },
-    ];
-
-    console.log(`${name} rows:`, calculatedRows);
-    console.log(`${name} pinnedBottomRow:`, pinnedBottomRow);
-
-    return { rows: calculatedRows, pinnedBottomRow };
-  }, [data?.rows, settings.exchangeRates, name, sanitizeNumber, formatNumber]);
-
-  useEffect(() => {
-    if (gridRef.current?.api && data?.rows) {
-      gridRef.current.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
-      gridRef.current.api.redrawRows();
-      console.log(`Set pinned bottom rows for ${name}:`, pinnedBottomRow);
-    }
-  }, [data?.rows, pinnedBottomRow, name]);
-
-  const handleGridReady = (params: any) => {
+  // Grid ready handler
+  const handleGridReady = useCallback((params: any) => {
     gridRef.current = params;
-    params.api.resetColumnState(); // Ensure id is hidden
-    params.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
     params.api.sizeColumnsToFit();
-    params.api.redrawRows();
-    console.log(`Grid ready for ${name}, columns sized, pinned rows set:`, pinnedBottomRow);
-  };
+  }, []);
 
-  const getPinnedRowStyle = () => ({
-    fontWeight: 'bold',
-    backgroundColor: '#e8e8e8',
-    color: 'black',
-    borderBottom: '1px solid #aaa',
-    height: '70px',
-    fontSize: '14px',
-  });
+  // Handle cell value changed
+  const handleCellValueChanged = useCallback(
+    (params: any) => {
+      const api = gridRef.current?.api;
+      const colState = api?.getColumnState();
+      const verticalScrollPosition = api?.getVerticalPixelRange()?.top || 0;
+      const horizontalScrollPosition = api?.getHorizontalPixelRange()?.left || 0;
+      const editedRowIndex = params.node.rowIndex;
+
+      // Update rows
+      let updatedRows = rows.map((row, index) => 
+        (index === editedRowIndex ? { ...row, [params.column.colId]: params.newValue } : row)
+      );
+
+      // Save the changes
+      onChange({ ...data, rows: updatedRows });
+
+      // Restore grid state
+      setTimeout(() => {
+        if (api) {
+          if (colState) api.setColumnState(colState);
+          api.setVerticalScrollPosition(verticalScrollPosition);
+          api.setHorizontalScrollPosition(horizontalScrollPosition);
+          api.ensureIndexVisible(editedRowIndex, 'middle');
+        }
+      }, 0);
+    },
+    [data, rows, onChange]
+  );
+
+  // Handle cell context menu
+  const handleCellContextMenu = useCallback((params: any) => {
+    // This function handles right-click context menu on cells
+    console.log("Cell context menu:", params);
+    // You can add custom context menu handling here if needed
+  }, []);
+
+  // Context menu items
+  const getContextMenuItems = useCallback(
+    (params: any) => {
+      if (params.node?.rowPinned) {
+        return [];
+      }
+      return [
+        {
+          name: 'Add Row',
+          action: () => {
+            addRow();
+          },
+        },
+        {
+          name: 'Delete Selected Rows',
+          action: () => {
+            deleteSelectedRows();
+          },
+          disabled: !data?.rows || data.rows.length <= 1 || selectedRowsCount === 0,
+        },
+        'separator',
+        'copy',
+        'paste',
+      ];
+    },
+    [addRow, deleteSelectedRows, data, selectedRowsCount]
+  );
+
+  // Save current edit (for ref)
+  React.useImperativeHandle(ref, () => ({
+    saveCurrentEdit: () => {
+      if (currentEdit) {
+        // Implementation if needed
+      }
+    }
+  }));
 
   return (
     <div
-      className="custom-grid-container"
+      className="admin-fee-grid-container"
       style={{
         position: 'absolute',
         top: 0,
@@ -229,34 +261,38 @@ export default function AdminFeeSheet({ name, data, onChange, settings, setSetti
       }}
     >
       <div className="sticky-title" style={{ flex: '0 0 auto' }}>
-        <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>管  理 費</div>
+        <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '8px' }}>
+          {name}
+        </div>
         <div>
           公司名稱:{' '}
           <input
-            value={settings.companyName || ''}
+            value={settings?.companyName || ''}
             onChange={(e) => setSettings({ ...settings, companyName: e.target.value })}
             style={{ width: 120 }}
           />
-          {' '}
-          會計期間：
+          會計期間：{' '}
           <input
-            value={settings.period || ''}
+            value={settings?.period || ''}
             onChange={(e) => setSettings({ ...settings, period: e.target.value })}
-            style={{ width: 120 }}
-          />
-          {' '}
-          賬號：
-          <input
-            value={data?.account || ''}
-            onChange={(e) => {
-              const newData = { ...data, account: e.target.value };
-              console.log('Account input onChange:', newData);
-              onChange(newData);
-            }}
             style={{ width: 120 }}
           />
         </div>
       </div>
+
+      {/* Add and Delete buttons */}
+      <div style={{ flex: '0 0 auto', padding: '4px 8px' }}>
+        <button onClick={addRow} style={{ marginRight: '8px' }}>
+          Add Row
+        </button>
+        <button
+          onClick={deleteSelectedRows}
+          disabled={!Array.isArray(data?.rows) || data?.rows?.length <= 1 || selectedRowsCount === 0}
+        >
+          Delete Selected Rows
+        </button>
+      </div>
+
       <div
         style={{
           flex: '1 1 auto',
@@ -265,7 +301,7 @@ export default function AdminFeeSheet({ name, data, onChange, settings, setSetti
         }}
       >
         <div
-          className="ag-theme-alpine custom-grid"
+          className="ag-theme-alpine admin-fee-grid"
           style={{
             position: 'absolute',
             top: 0,
@@ -280,31 +316,15 @@ export default function AdminFeeSheet({ name, data, onChange, settings, setSetti
             pinnedBottomRowData={pinnedBottomRow}
             columnDefs={columns}
             defaultColDef={{
-              editable: false,
+              editable: true,
               resizable: true,
-              suppressSizeToFit: true,
+              suppressSizeToFit: false,
               minWidth: 80,
             }}
             onGridReady={handleGridReady}
-            onCellValueChanged={(params) => {
-              const newRows = [...rows];
-              const debit = sanitizeNumber(params.data.debit);
-              const credit = sanitizeNumber(params.data.credit);
-              const balance = debit - credit;
-              newRows[params.node.rowIndex] = {
-                ...params.data,
-                balance: formatNumber(balance * sanitizeNumber(settings.exchangeRates?.['HSBC-HKD'] || '1.00')),
-              };
-              const newData = { ...data, rows: newRows };
-              console.log(`${name} onChange:`, newData);
-              onChange(newData);
-              if (gridRef.current?.api) {
-                gridRef.current.api.stopEditing(false);
-                gridRef.current.api.clearFocusedCell();
-                gridRef.current.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
-                gridRef.current.api.redrawRows();
-              }
-            }}
+            onCellValueChanged={handleCellValueChanged}
+            onCellContextMenu={handleCellContextMenu}
+            onRowSelected={handleSelectionChanged}
             enableClipboard={true}
             processCellForClipboard={(params) => params.value}
             processCellFromClipboard={(params) => params.value}
@@ -315,43 +335,32 @@ export default function AdminFeeSheet({ name, data, onChange, settings, setSetti
             suppressFocusAfterRefresh={true}
             headerHeight={30}
             rowHeight={30}
-            pinnedRowHeight={70}
+            pinnedRowHeight={50}
             domLayout="normal"
+            rowSelection="multiple"
+            getContextMenuItems={getContextMenuItems}
             suppressColumnVirtualisation={true}
             suppressRowVirtualisation={true}
-            suppressNoRowsOverlay={true}
             cellStyle={(params) => {
               if (params.node.rowPinned) {
                 return {
-                  display: 'flex',
-                  alignItems: 'center',
-                  overflow: 'visible',
                   backgroundColor: '#e8e8e8',
                   fontWeight: 'bold',
-                  color: 'black',
+                  color: '#000'
                 };
               }
-              return {
-                display: 'flex',
-                alignItems: 'center',
-                overflow: 'visible',
-              };
-            }}
-            getRowStyle={(params) => {
-              if (params.node.rowPinned) {
-                return getPinnedRowStyle();
-              }
-              return null;
+              return {};
             }}
             onFirstDataRendered={(params) => {
-              params.api.sizeColumnsToFit();
-              params.api.setGridOption('pinnedBottomRowData', pinnedBottomRow);
-              params.api.redrawRows();
-              console.log(`First data rendered for ${name}, columns sized, pinned rows:`, pinnedBottomRow);
+              setTimeout(() => {
+                params.api.sizeColumnsToFit();
+              }, 100);
             }}
           />
         </div>
       </div>
     </div>
   );
-}
+});
+
+export default AdminFeeSheet;

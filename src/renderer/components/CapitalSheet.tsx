@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useCallback, useState } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
@@ -16,6 +16,7 @@ type Props = {
 
 export default function CapitalSheet({ name, data, onChange, settings, setSettings }: Props) {
   const gridRef = useRef<any>(null);
+  const [selectedRowsCount, setSelectedRowsCount] = useState(0);
 
   // Initialize data if undefined
   useEffect(() => {
@@ -191,6 +192,49 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
     fontSize: '14px',
   });
 
+  const addRow = useCallback(() => {
+    const rows = data?.rows || [];
+    const lastRow = rows.length > 0 ? rows[rows.length - 1] : null;
+    const newRow = {
+      no: lastRow ? Number(lastRow.no || 0) + 1 : 1,
+      date: '',
+      subject: '',
+      desc: '',
+      invoice: '',
+      debit: '',
+      balance: '',
+      id: `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+    
+    onChange({
+      ...data,
+      rows: [...(data?.rows || []), newRow],
+    });
+  }, [data, onChange]);
+
+  const deleteSelectedRows = useCallback(() => {
+    if (!gridRef.current?.api) return;
+    
+    const selectedNodes = gridRef.current.api.getSelectedNodes();
+    if (selectedNodes.length === 0) return;
+    
+    const selectedIds = selectedNodes.map((node: any) => node.data.id);
+    const newRows = data.rows.filter((row: any) => !selectedIds.includes(row.id));
+    
+    // Recalculate no values to be sequential
+    const updatedRows = newRows.map((row: any, index: number) => ({
+      ...row,
+      no: index + 1,
+    }));
+    
+    onChange({
+      ...data,
+      rows: updatedRows,
+    });
+    
+    setSelectedRowsCount(0);
+  }, [data, onChange]);
+
   return (
     <div
       className="custom-grid-container"
@@ -233,6 +277,18 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
             style={{ width: 120 }}
           />
         </div>
+      </div>
+      {/* Add and Delete buttons */}
+      <div style={{ flex: '0 0 auto', padding: '4px 8px' }}>
+        <button onClick={addRow} style={{ marginRight: '8px' }}>
+          Add Row
+        </button>
+        <button
+          onClick={deleteSelectedRows}
+          disabled={!Array.isArray(data?.rows) || data?.rows?.length <= 1 || selectedRowsCount === 0}
+        >
+          Delete Selected Rows
+        </button>
       </div>
       <div
         style={{

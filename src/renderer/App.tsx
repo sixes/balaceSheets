@@ -501,7 +501,7 @@ export default function App() {
             case 'secretary':
             case 'salary':
             case 'audit':
-              return <AdminFeeSheet {...props} />;
+              return <AdminFeeSheet {...props} ref={React.createRef()} />;
             default:
               console.error('No matching sheet type for:', activeSheet, 'Available sheets:', sheets);
               return <div>No sheet found for {activeSheet}. Please check sheet configuration.</div>;
