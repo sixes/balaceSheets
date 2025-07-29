@@ -235,6 +235,11 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
     setSelectedRowsCount(0);
   }, [data, onChange]);
 
+  const handleSelectionChanged = useCallback(() => {
+    const selectedNodes = gridRef.current?.api?.getSelectedNodes() || [];
+    setSelectedRowsCount(selectedNodes.length);
+  }, []);
+
   return (
     <div
       className="custom-grid-container"
@@ -285,7 +290,7 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
         </button>
         <button
           onClick={deleteSelectedRows}
-          disabled={!Array.isArray(data?.rows) || data?.rows?.length <= 1 || selectedRowsCount === 0}
+          disabled={!Array.isArray(data?.rows) || selectedRowsCount === 0}
         >
           Delete Selected Rows
         </button>
@@ -380,6 +385,8 @@ export default function CapitalSheet({ name, data, onChange, settings, setSettin
               params.api.redrawRows();
               console.log(`First data rendered for ${name}, columns sized, pinned rows:`, pinnedBottomRow);
             }}
+            onSelectionChanged={handleSelectionChanged}
+            rowSelection="multiple"
           />
         </div>
       </div>

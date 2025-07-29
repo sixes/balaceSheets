@@ -299,7 +299,7 @@ export default function App() {
         bankSheetRef.current.saveCurrentEdit();
       }
 
-      if (['銷售收入', '銷售成本', '銀行費用', '利息收入', '應付費用', '董事往來', '股本'].includes(sheetName)) {
+      if (['銷售收入', '銷售成本', '銀行費用', '利息收入', '應付費用', '董事往來'].includes(sheetName)) {
         const sheetConfig = {
           '銷售收入': { subjects: ['销售收入'], sourceField: 'debit', targetField: 'credit', rows: defaultNonBankRows },
           '銷售成本': { subjects: ['销售成本'], sourceField: 'credit', targetField: 'debit', rows: defaultNonBankRows },
